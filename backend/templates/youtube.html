@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Processor - AI Study Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-title">AI Study Assistant</h1>
+            <a href="index.html" class="nav-link">Back to Home</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="intro-section">
+            <h2>Process YouTube Educational Videos</h2>
+            <p>Provide a YouTube URL of an educational video. The system will generate a summary, multiple-choice questions, and key notes to help you study the video content effectively.</p>
+        </div>
+
+        <div class="feature-container">
+            <div class="card">
+                <div class="card-icon">📺</div>
+                <h3>YouTube → Summary, MCQ, Notes</h3>
+                <input type="text" id="youtubeInput" placeholder="Enter YouTube URL here...">
+                <button type="button" onclick="processVideo()">Process Video</button>
+                <div id="youtubeResult" class="result"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

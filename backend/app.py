@@ -4,14 +4,28 @@ import hashlib
 import mimetypes
 import ast
 import operator
+import json
 from urllib.parse import urlparse
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template, session, redirect
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder='../frontend', static_url_path='')
+app = Flask(__name__, static_folder='static', template_folder='templates', static_url_path='')
+app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 CORS(app)
 
 topics = ["mathematics", "physics", "chemistry", "biology", "history", "literature"]
+
+USERS_FILE = 'users.json'
+
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f)
 
 def get_video_id(url):
     match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
@@ -169,30 +183,46 @@ def build_youtube_payload(url: str):
 
 @app.route('/')
 def index():
-    return send_from_directory('../frontend', 'index.html')
+    if 'username' in session:
+        return redirect('/home')
+    return render_template('index.html')
+
+@app.route('/image')
+def image():
+    return render_template('image.html')
+
+@app.route('/question')
+def question():
+    return render_template('question.html')
+
+@app.route('/youtube')
+def youtube():
+    return render_template('youtube.html')
 
 @app.route('/login')
 def login():
-    return send_from_directory('../frontend', 'login.html')
+    return render_template('login.html')
 
 @app.route('/signup')
 def signup():
-    return send_from_directory('../frontend', 'signup.html')
+    return render_template('signup.html')
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
-    if 'image' not in request.files:
-        return jsonify({"status": "error", "message": "No image part"}), 400
+    if "image" not in request.files:
+        return jsonify({"error": "Image not found"}), 400
 
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({"status": "error", "message": "No selected file"}), 400
+    image = request.files["image"]
 
-    filename = file.filename
-    file_content = file.read()
-    digest = sha256_hex(file_content)
+    if image.filename == "":
+        return jsonify({"error": "Empty filename"}), 400
+
+    filename = image.filename
     content_type = guess_content_type(filename)
-    size_bytes = len(file_content)
+    size_bytes = len(image.read())
+    image.seek(0)  # Reset file pointer
+    digest = sha256_hex(image.read())
+    image.seek(0)
 
     summary = build_image_summary(filename, content_type, size_bytes, digest)
     mcqs = build_image_mcqs(filename, content_type, size_bytes, digest)
@@ -218,10 +248,11 @@ def solve_question():
 @app.route('/youtube-process', methods=['POST'])
 def youtube_process():
     data = request.get_json()
-    if not data or 'url' not in data:
-        return jsonify({"status": "error", "message": "No URL provided"}), 400
 
-    url = data['url']
+    if not data or "url" not in data:
+        return jsonify({"error": "URL missing"}), 400
+
+    url = data["url"]
     summary, mcqs, notes = build_youtube_payload(url)
 
     return jsonify({
@@ -230,5 +261,60 @@ def youtube_process():
         "notes": notes
     })
 
+@app.route('/signup', methods=['POST'])
+def signup_post():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+    users = load_users()
+    if username in users:
+        return jsonify({"error": "User already exists"}), 400
+    users[username] = password
+    save_users(users)
+    return jsonify({"message": "User created successfully"}), 201
+
+@app.route('/login', methods=['POST'])
+def login_post():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    users = load_users()
+    if username not in users or users[username] != password:
+        return jsonify({"error": "Invalid credentials"}), 401
+    session['username'] = username
+    return jsonify({"message": "Login successful"}), 200
+
+@app.route('/home')
+def home():
+    if 'username' not in session:
+        return redirect('/')
+    return render_template('home.html')
+
+@app.route('/summary')
+def summary():
+    if 'username' not in session:
+        return redirect('/')
+    return render_template('summary.html')
+
+@app.route('/solution')
+def solution():
+    if 'username' not in session:
+        return redirect('/')
+    return render_template('solution.html')
+
+@app.route('/notes')
+def notes():
+    if 'username' not in session:
+        return redirect('/')
+    return render_template('notes.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    return redirect('/')
+
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True)
+            
