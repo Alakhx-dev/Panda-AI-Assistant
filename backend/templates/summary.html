@@ -26,9 +26,17 @@
             <div class="card">
                 <div class="card-icon">📷</div>
                 <h3>Generate Summary & MCQs</h3>
-                <button class="upload-button" onclick="openModal()">Upload Image</button>
-                <input type="url" id="linkInput" placeholder="Paste link here">
-                <button type="button" onclick="uploadImage()">Process</button>
+                <div class="input-selection">
+                    <button class="upload-button" id="imageButton" onclick="selectImageInput()">Upload Image</button>
+                    <button class="upload-button" id="linkButton" onclick="selectLinkInput()">YouTube Link</button>
+                </div>
+                <div id="imageInputSection">
+                    <button class="upload-button" onclick="openModal()">Choose Image</button>
+                </div>
+                <div id="linkInputSection" style="display: none;">
+                    <input type="url" id="linkInput" placeholder="Paste YouTube link here">
+                </div>
+                <button type="button" id="processButton" onclick="processInput()">Process</button>
                 <div class="spinner" id="spinner"></div>
                 <div id="result" class="result"></div>
             </div>

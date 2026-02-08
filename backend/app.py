@@ -5,6 +5,8 @@ import mimetypes
 import ast
 import operator
 import json
+import requests
+import easyocr
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_from_directory, render_template, session, redirect, make_response
 from flask_cors import CORS
@@ -12,6 +14,13 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder='static', template_folder='templates', static_url_path='')
 app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 CORS(app)
+
+HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
+if not HUGGINGFACE_API_KEY:
+    raise ValueError("HUGGINGFACE_API_KEY environment variable is not set")
+
+# Initialize EasyOCR reader
+reader = easyocr.Reader(['en'])
 
 topics = ["mathematics", "physics", "chemistry", "biology", "history", "literature"]
 
@@ -38,11 +47,57 @@ def guess_content_type(filename: str) -> str:
     content_type, _ = mimetypes.guess_type(filename)
     return content_type or ""
 
-def build_image_summary(filename: str, content_type: str, size_bytes: int, digest: str) -> str:
-    return "Unable to generate summary from this image. Please try another image."
+def summarize_text(text: str) -> str:
+    """Summarize text using Hugging Face facebook/bart-large-cnn model."""
+    url = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
+    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+    payload = {"inputs": text, "parameters": {"max_length": 150, "min_length": 30}}
+    response = requests.post(url, headers=headers, json=payload)
+    if response.status_code == 200:
+        result = response.json()
+        if isinstance(result, list) and result:
+            return result[0].get("summary_text", "")
+    return ""
 
-def build_image_mcqs(filename: str, content_type: str, size_bytes: int, digest: str):
-    return []
+def generate_mcqs(summary: str):
+    """Generate MCQs from summary using Hugging Face iarfmoose/t5-base-question-generator."""
+    url = "https://api-inference.huggingface.co/models/iarfmoose/t5-base-question-generator"
+    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
+    # Generate questions from summary
+    payload = {"inputs": f"generate questions: {summary}", "parameters": {"max_length": 100}}
+    response = requests.post(url, headers=headers, json=payload)
+    mcqs = []
+    if response.status_code == 200:
+        result = response.json()
+        if isinstance(result, list) and result:
+            generated_text = result[0].get("generated_text", "")
+            # Parse generated text to extract questions and answers
+            # Assuming format like "Question: ... Answer: ..."
+            lines = generated_text.split('\n')
+            questions = []
+            answers = []
+            for line in lines:
+                if line.startswith("Question:"):
+                    questions.append(line.replace("Question:", "").strip())
+                elif line.startswith("Answer:"):
+                    answers.append(line.replace("Answer:", "").strip())
+            # Create MCQs with options
+            for i, q in enumerate(questions[:5]):  # Limit to 5 MCQs
+                correct_answer = answers[i] if i < len(answers) else "Unknown"
+                # Generate distractors from summary words
+                words = summary.split()
+                distractors = [w for w in words if w.lower() != correct_answer.lower()][:3]
+                if len(distractors) < 3:
+                    distractors.extend(["Option A", "Option B", "Option C"][:3-len(distractors)])
+                options = [correct_answer] + distractors
+                import random
+                random.shuffle(options)
+                mcqs.append({
+                    "question": q,
+                    "options": options,
+                    "answer": correct_answer
+                })
+    return mcqs
 
 _ALLOWED_AST_NODES = {
     ast.Expression,
@@ -132,42 +187,7 @@ def build_solution(question: str):
         "final_answer": "",
     }
 
-def build_youtube_payload(url: str):
-    parsed = urlparse(url)
-    video_id = get_video_id(url) or ""
-    digest = sha256_hex(url.encode())
-    summary = (
-        "url="
-        + url
-        + ";host="
-        + (parsed.hostname or "")
-        + ";path="
-        + (parsed.path or "")
-        + ";video_id="
-        + video_id
-        + ";sha256="
-        + digest
-    )
-    mcqs = [
-        {
-            "question": "Which value matches the video_id?",
-            "options": [video_id, parsed.hostname or "", parsed.path or "", digest[:12]],
-            "answer": video_id,
-        },
-        {
-            "question": "Which value matches the URL host?",
-            "options": [parsed.hostname or "", video_id, parsed.path or "", digest[:12]],
-            "answer": parsed.hostname or "",
-        },
-    ]
-    notes = [
-        f"url={url}",
-        f"host={parsed.hostname or ''}",
-        f"path={parsed.path or ''}",
-        f"video_id={video_id}",
-        f"sha256={digest}",
-    ]
-    return summary, mcqs, notes
+
 
 @app.route('/')
 def index():
@@ -222,27 +242,43 @@ def signup():
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
     if "image" not in request.files:
-        return jsonify({"error": "Image not found"}), 400
+        return jsonify({"summary": None, "mcqs": [], "error": "Image not found"}), 400
 
     image = request.files["image"]
 
     if image.filename == "":
-        return jsonify({"error": "Empty filename"}), 400
+        return jsonify({"summary": None, "mcqs": [], "error": "Empty filename"}), 400
 
-    filename = image.filename
-    content_type = guess_content_type(filename)
-    size_bytes = len(image.read())
-    image.seek(0)  # Reset file pointer
-    digest = sha256_hex(image.read())
-    image.seek(0)
+    # Save image temporarily for OCR
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+        image.save(temp_file.name)
+        temp_path = temp_file.name
 
-    summary = build_image_summary(filename, content_type, size_bytes, digest)
-    mcqs = build_image_mcqs(filename, content_type, size_bytes, digest)
+    try:
+        # Perform OCR
+        results = reader.readtext(temp_path)
+        extracted_text = ' '.join([text for _, text, _ in results]).strip()
 
-    return jsonify({
-        "summary": summary,
-        "mcqs": mcqs
-    })
+        if not extracted_text or len(extracted_text) < 10:
+            return jsonify({"summary": None, "mcqs": [], "error": "Unable to extract readable text from image."}), 400
+
+        # Summarize the extracted text
+        summary = summarize_text(extracted_text)
+        if not summary:
+            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary."}), 500
+
+        # Generate MCQs from summary
+        mcqs = generate_mcqs(summary)
+
+        return jsonify({
+            "summary": summary,
+            "mcqs": mcqs,
+            "error": None
+        })
+    finally:
+        import os
+        os.unlink(temp_path)
 
 @app.route('/solve-question', methods=['POST'])
 def solve_question():
@@ -262,16 +298,40 @@ def youtube_process():
     data = request.get_json()
 
     if not data or "url" not in data:
-        return jsonify({"error": "URL missing"}), 400
+        return jsonify({"summary": None, "mcqs": [], "error": "URL missing"}), 400
 
     url = data["url"]
-    summary, mcqs, notes = build_youtube_payload(url)
+    video_id = get_video_id(url)
+    if not video_id:
+        return jsonify({"summary": None, "mcqs": [], "error": "Invalid YouTube URL"}), 400
 
-    return jsonify({
-        "summary": summary,
-        "mcqs": mcqs,
-        "notes": notes
-    })
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+        transcript_text = ' '.join([item['text'] for item in transcript_list]).strip()
+
+        if not transcript_text:
+            return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available for this video."}), 400
+
+        # Summarize the transcript
+        summary = summarize_text(transcript_text)
+        if not summary:
+            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary."}), 500
+
+        # Generate MCQs from summary
+        mcqs = generate_mcqs(summary)
+
+        response_payload = {
+            "summary": summary,
+            "mcqs": mcqs,
+            "error": None
+        }
+        if data.get("include_notes"):
+            # For notes, perhaps include some metadata, but since task doesn't specify, keep minimal
+            response_payload["notes"] = [f"video_id={video_id}", f"url={url}"]
+        return jsonify(response_payload)
+    except Exception as e:
+        return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available for this video."}), 400
 
 
 

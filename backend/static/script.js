@@ -141,11 +141,52 @@ if (document.getElementById('login-form')) {
     });
 }
 
-// Upload Image for Summary
-async function uploadImage() {
+// Select Image Input
+function selectImageInput() {
+    document.getElementById('imageInputSection').style.display = 'block';
+    document.getElementById('linkInputSection').style.display = 'none';
+    document.getElementById('imageButton').classList.add('active');
+    document.getElementById('linkButton').classList.remove('active');
+}
+
+// Select Link Input
+function selectLinkInput() {
+    document.getElementById('imageInputSection').style.display = 'none';
+    document.getElementById('linkInputSection').style.display = 'block';
+    document.getElementById('linkButton').classList.add('active');
+    document.getElementById('imageButton').classList.remove('active');
+}
+
+// Process Input
+async function processInput() {
+    const resultDiv = document.getElementById("result");
+    const spinner = document.getElementById("spinner");
+
+    resultDiv.innerHTML = '';
+    resultDiv.style.display = 'none';
+    spinner.style.display = 'block';
+
+    let isImage = document.getElementById('imageInputSection').style.display !== 'none';
+    let isLink = document.getElementById('linkInputSection').style.display !== 'none';
+
+    try {
+        if (isImage) {
+            await processImage();
+        } else if (isLink) {
+            await processLink();
+        } else {
+            resultDiv.innerText = "Please select an input type.";
+            resultDiv.style.display = 'block';
+        }
+    } finally {
+        spinner.style.display = 'none';
+    }
+}
+
+// Process Image
+async function processImage() {
     const fileInput = document.getElementById("imageInput");
     const cameraInput = document.getElementById("cameraInput");
-    const linkInput = document.getElementById("linkInput");
     const resultDiv = document.getElementById("result");
 
     let file = null;
@@ -155,23 +196,14 @@ async function uploadImage() {
         file = cameraInput.files[0];
     }
 
-    if (!file && !linkInput.value) {
-        resultDiv.innerText = "Please select an image or paste a link.";
+    if (!file) {
+        resultDiv.innerText = "Please select an image.";
         resultDiv.style.display = 'block';
         return;
     }
 
-    resultDiv.style.display = 'block';
-    resultDiv.innerHTML = 'Processing...';
-
     const formData = new FormData();
-    if (file) {
-        formData.append("image", file);
-    } else {
-        // For link, but endpoint expects image, so perhaps handle differently, but for now assume image
-        resultDiv.innerText = "Link input not implemented for image upload.";
-        return;
-    }
+    formData.append("image", file);
 
     try {
         const response = await fetch("/upload-image", {
@@ -181,22 +213,70 @@ async function uploadImage() {
 
         const data = await response.json();
 
-        if (data.summary && data.mcqs) {
-            let html = `<strong>Summary:</strong> ${data.summary}<br><br><strong>MCQs:</strong><ul>`;
-            data.mcqs.forEach(q => {
-                html += `<li><strong>${q.question}</strong><br>`;
-                html += `Options: ${q.options.join(', ')}<br>`;
-                html += `Answer: ${q.answer}</li>`;
-            });
-            html += "</ul>";
-            resultDiv.innerHTML = html;
-        } else {
-            resultDiv.innerHTML = 'Error: Invalid response format.';
-        }
+        renderSummaryResult(data, resultDiv);
 
     } catch (error) {
-        resultDiv.innerText = "Error processing.";
+        resultDiv.innerText = "Error processing image.";
+        resultDiv.style.display = 'block';
     }
+}
+
+// Process Link
+async function processLink() {
+    const linkInput = document.getElementById("linkInput");
+    const resultDiv = document.getElementById("result");
+
+    if (!linkInput.value) {
+        resultDiv.innerText = "Please paste a YouTube link.";
+        resultDiv.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch("/youtube-process", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: linkInput.value })
+        });
+
+        const data = await response.json();
+
+        renderSummaryResult(data, resultDiv);
+
+    } catch (error) {
+        resultDiv.innerText = "Error processing link.";
+        resultDiv.style.display = 'block';
+    }
+}
+
+function renderSummaryResult(data, resultDiv) {
+    resultDiv.innerHTML = '';
+    if (data && data.error) {
+        resultDiv.innerText = data.error;
+        resultDiv.style.display = 'block';
+        return;
+    }
+
+    let html = '';
+    if (data && data.summary) {
+        html += `<strong>Summary:</strong> ${data.summary}`;
+    }
+    if (data && Array.isArray(data.mcqs) && data.mcqs.length) {
+        html += `${html ? '<br><br>' : ''}<strong>MCQs:</strong><ul>`;
+        data.mcqs.forEach(q => {
+            html += `<li><strong>${q.question}</strong><br>`;
+            html += `Options: ${q.options.join(', ')}<br>`;
+            html += `Answer: ${q.answer}</li>`;
+        });
+        html += "</ul>";
+    }
+
+    if (!html) {
+        resultDiv.innerText = "Unable to generate summary or MCQs. Please try again.";
+    } else {
+        resultDiv.innerHTML = html;
+    }
+    resultDiv.style.display = 'block';
 }
 
 // Solve Question
@@ -278,7 +358,7 @@ async function processVideo() {
         const response = await fetch("/youtube-process", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url })
+            body: JSON.stringify({ url, include_notes: true })
         });
 
         const data = await response.json();
@@ -351,6 +431,12 @@ function openCamera() {
     const cameraInput = document.getElementById('cameraInput');
     if (cameraInput) {
         cameraInput.click();
+        cameraInput.addEventListener('change', function() {
+            // Trigger processing if on summary page
+            if (window.location.pathname === '/summary') {
+                processInput();
+            }
+        });
     }
 }
 
@@ -434,11 +520,16 @@ if (cameraInputEl) {
     cameraInputEl.addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showCropModal(e.target.result);
-            };
-            reader.readAsDataURL(file);
+            if (window.location.pathname === '/summary') {
+                // For summary page, process directly
+                processInput();
+            } else {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModal(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
         }
     });
 }
@@ -448,11 +539,16 @@ if (galleryInputEl) {
     galleryInputEl.addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                showCropModal(e.target.result);
-            };
-            reader.readAsDataURL(file);
+            if (window.location.pathname === '/summary') {
+                // For summary page, process directly
+                processInput();
+            } else {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    showCropModal(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
         }
     });
 }
