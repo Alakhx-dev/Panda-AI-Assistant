@@ -1,34 +1,233 @@
-from flask import Flask, request, jsonify
+import os
+import re
+import hashlib
+import mimetypes
+import ast
+import operator
+from urllib.parse import urlparse
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend', static_url_path='')
 CORS(app)
+
+topics = ["mathematics", "physics", "chemistry", "biology", "history", "literature"]
+
+def get_video_id(url):
+    match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
+    return match.group(1) if match else None
+
+def sha256_hex(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+def guess_content_type(filename: str) -> str:
+    content_type, _ = mimetypes.guess_type(filename)
+    return content_type or ""
+
+def build_image_summary(filename: str, content_type: str, size_bytes: int, digest: str) -> str:
+    return f"filename={filename};content_type={content_type};bytes={size_bytes};sha256={digest}"
+
+def build_image_mcqs(filename: str, content_type: str, size_bytes: int, digest: str):
+    digest_prefix = digest[:12]
+    return [
+        {
+            "question": "Which value matches the file size in bytes?",
+            "options": [str(size_bytes), filename, content_type, digest_prefix],
+            "answer": str(size_bytes),
+        },
+        {
+            "question": "Which value matches the SHA-256 prefix?",
+            "options": [digest_prefix, filename, content_type, str(size_bytes)],
+            "answer": digest_prefix,
+        },
+    ]
+
+_ALLOWED_AST_NODES = {
+    ast.Expression,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Pow,
+    ast.Mod,
+    ast.USub,
+    ast.UAdd,
+    ast.Constant,
+    ast.FloorDiv,
+    ast.LShift,
+    ast.RShift,
+    ast.BitOr,
+    ast.BitAnd,
+    ast.BitXor,
+}
+
+_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.FloorDiv: operator.floordiv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+    ast.BitOr: operator.or_,
+    ast.BitAnd: operator.and_,
+    ast.BitXor: operator.xor,
+    ast.LShift: operator.lshift,
+    ast.RShift: operator.rshift,
+    ast.UAdd: operator.pos,
+    ast.USub: operator.neg,
+}
+
+def extract_math_expression(text: str) -> str | None:
+    matches = re.findall(r"[0-9\.\+\-\*\/\%\(\)\^\|\&\<\>]+", text)
+    if not matches:
+        return None
+    candidate = max(matches, key=len)
+    if re.search(r"\d", candidate) is None:
+        return None
+    return candidate.replace("^", "**")
+
+def safe_eval_expr(expression: str):
+    def _eval(node):
+        if type(node) not in _ALLOWED_AST_NODES:
+            raise ValueError("unsupported_expression")
+        if isinstance(node, ast.Expression):
+            return _eval(node.body)
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, (int, float)):
+                return node.value
+            raise ValueError("unsupported_constant")
+        if isinstance(node, ast.UnaryOp):
+            op = _OPERATORS.get(type(node.op))
+            if op is None:
+                raise ValueError("unsupported_operator")
+            return op(_eval(node.operand))
+        if isinstance(node, ast.BinOp):
+            op = _OPERATORS.get(type(node.op))
+            if op is None:
+                raise ValueError("unsupported_operator")
+            return op(_eval(node.left), _eval(node.right))
+        raise ValueError("unsupported_node")
+
+    parsed = ast.parse(expression, mode="eval")
+    return _eval(parsed)
+
+def build_solution(question: str):
+    expression = extract_math_expression(question)
+    if expression:
+        try:
+            value = safe_eval_expr(expression)
+            return {
+                "steps": [f"expression={expression}", f"result={value}"],
+                "final_answer": str(value),
+            }
+        except Exception:
+            pass
+    return {
+        "steps": [f"question={question}", f"length={len(question)}"],
+        "final_answer": "",
+    }
+
+def build_youtube_payload(url: str):
+    parsed = urlparse(url)
+    video_id = get_video_id(url) or ""
+    digest = sha256_hex(url.encode())
+    summary = (
+        "url="
+        + url
+        + ";host="
+        + (parsed.hostname or "")
+        + ";path="
+        + (parsed.path or "")
+        + ";video_id="
+        + video_id
+        + ";sha256="
+        + digest
+    )
+    mcqs = [
+        {
+            "question": "Which value matches the video_id?",
+            "options": [video_id, parsed.hostname or "", parsed.path or "", digest[:12]],
+            "answer": video_id,
+        },
+        {
+            "question": "Which value matches the URL host?",
+            "options": [parsed.hostname or "", video_id, parsed.path or "", digest[:12]],
+            "answer": parsed.hostname or "",
+        },
+    ]
+    notes = [
+        f"url={url}",
+        f"host={parsed.hostname or ''}",
+        f"path={parsed.path or ''}",
+        f"video_id={video_id}",
+        f"sha256={digest}",
+    ]
+    return summary, mcqs, notes
+
+@app.route('/')
+def index():
+    return send_from_directory('../frontend', 'index.html')
+
+@app.route('/login')
+def login():
+    return send_from_directory('../frontend', 'login.html')
+
+@app.route('/signup')
+def signup():
+    return send_from_directory('../frontend', 'signup.html')
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
-    # Dummy logic
+    if 'image' not in request.files:
+        return jsonify({"status": "error", "message": "No image part"}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+
+    filename = file.filename
+    file_content = file.read()
+    digest = sha256_hex(file_content)
+    content_type = guess_content_type(filename)
+    size_bytes = len(file_content)
+
+    summary = build_image_summary(filename, content_type, size_bytes, digest)
+    mcqs = build_image_mcqs(filename, content_type, size_bytes, digest)
+
     return jsonify({
-        "status": "success",
-        "message": "Image uploaded and processed",
-        "data": {"summary": "Dummy summary", "mcq": ["Q1", "Q2"]}
+        "summary": summary,
+        "mcqs": mcqs
     })
 
 @app.route('/solve-question', methods=['POST'])
 def solve_question():
-    # Dummy logic
+    data = request.get_json()
+    if not data or 'question' not in data:
+        return jsonify({"status": "error", "message": "No question provided"}), 400
+
+    question = data['question']
+    solution = build_solution(question)
+
     return jsonify({
-        "status": "success",
-        "message": "Question solved",
-        "data": {"solution": "Dummy solution"}
+        "solution": solution
     })
 
 @app.route('/youtube-process', methods=['POST'])
 def youtube_process():
-    # Dummy logic
+    data = request.get_json()
+    if not data or 'url' not in data:
+        return jsonify({"status": "error", "message": "No URL provided"}), 400
+
+    url = data['url']
+    summary, mcqs, notes = build_youtube_payload(url)
+
     return jsonify({
-        "status": "success",
-        "message": "YouTube video processed",
-        "data": {"summary": "Dummy summary", "mcq": ["Q1", "Q2"], "notes": "Dummy notes"}
+        "summary": summary,
+        "mcqs": mcqs,
+        "notes": notes
     })
 
 if __name__ == '__main__':
