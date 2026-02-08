@@ -313,3 +313,149 @@ window.onclick = function(event) {
         modal.style.display = 'none';
     }
 }
+
+// Global functions for profile and settings
+let cropper;
+
+function toggleSettingsMenu() {
+    const menu = document.getElementById('settingsMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function openProfileModal() {
+    document.getElementById('profileModal').style.display = 'block';
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal').style.display = 'none';
+}
+
+function openCamera() {
+    closeProfileModal();
+    document.getElementById('cameraInput').click();
+}
+
+function openGallery() {
+    closeProfileModal();
+    document.getElementById('galleryInput').click();
+}
+
+function showBuiltInAvatars() {
+    closeProfileModal();
+    document.getElementById('avatarsModal').style.display = 'block';
+}
+
+function closeAvatarsModal() {
+    document.getElementById('avatarsModal').style.display = 'none';
+}
+
+function closeCropModal() {
+    document.getElementById('cropModal').style.display = 'none';
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+}
+
+function selectBuiltInAvatar(imgSrc) {
+    localStorage.setItem('profileImage', imgSrc);
+    document.getElementById('profileImage').src = imgSrc;
+    closeAvatarsModal();
+}
+
+function cropAndSaveImage() {
+    if (cropper) {
+        const canvas = cropper.getCroppedCanvas({
+            width: 100,
+            height: 100,
+        });
+        const dataURL = canvas.toDataURL('image/png');
+        localStorage.setItem('profileImage', dataURL);
+        document.getElementById('profileImage').src = dataURL;
+        closeCropModal();
+    }
+}
+
+function logoutUser() {
+    localStorage.removeItem('username');
+    localStorage.removeItem('profileImage');
+    localStorage.removeItem('language');
+    window.location.href = '/logout';
+}
+
+function applyLanguage(lang) {
+    localStorage.setItem('language', lang);
+    document.documentElement.className = lang === 'hi' ? 'language-hi' : '';
+    // No reload, just update the class
+}
+
+// Event listeners for file inputs
+document.getElementById('cameraInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            showCropModal(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById('galleryInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            showCropModal(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function showCropModal(imageSrc) {
+    const cropContainer = document.getElementById('cropContainer');
+    cropContainer.innerHTML = `<img id="cropImage" src="${imageSrc}" style="max-width: 100%;">`;
+    document.getElementById('cropModal').style.display = 'block';
+
+    const image = document.getElementById('cropImage');
+    cropper = new Cropper(image, {
+        aspectRatio: 1,
+        viewMode: 1,
+        responsive: true,
+        restore: false,
+        checkCrossOrigin: false,
+        checkOrientation: false,
+        modal: true,
+        guides: true,
+        center: true,
+        highlight: false,
+        background: false,
+        autoCrop: true,
+        autoCropArea: 0.8,
+    });
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const profileModal = document.getElementById('profileModal');
+    const avatarsModal = document.getElementById('avatarsModal');
+    const cropModal = document.getElementById('cropModal');
+    const uploadModal = document.getElementById('uploadModal');
+    const settingsMenu = document.getElementById('settingsMenu');
+
+    if (event.target == profileModal) {
+        profileModal.style.display = 'none';
+    }
+    if (event.target == avatarsModal) {
+        avatarsModal.style.display = 'none';
+    }
+    if (event.target == cropModal) {
+        closeCropModal();
+    }
+    if (event.target == uploadModal) {
+        uploadModal.style.display = 'none';
+    }
+    if (!event.target.closest('.settings-button') && !event.target.closest('.settings-dropdown')) {
+        settingsMenu.style.display = 'none';
+    }
+}
