@@ -53,6 +53,11 @@ body {
     box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
+button.nav-link {
+    background: transparent;
+    color: #FFD700;
+}
+
 /* Home Page Styles */
 .home-container {
     display: flex;

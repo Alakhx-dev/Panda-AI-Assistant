@@ -11,7 +11,7 @@
     <div class="auth-container">
         <div class="auth-card">
             <h2>Create Account</h2>
-            <form id="signup-form">
+            <form id="signup-form" method="POST" action="/signup">
                 <div class="form-group">
                     <label for="signupUsername">Username</label>
                     <input type="text" id="signupUsername" required>
@@ -20,7 +20,7 @@
                     <label for="signupPassword">Password</label>
                     <div class="password-container">
                         <input type="password" id="signupPassword" required>
-                        <span class="toggle-password" onclick="togglePassword('signupPassword')">👁️</span>
+                        <span class="toggle-password">👁️</span>
                     </div>
                 </div>
                 <div class="form-group">
@@ -28,7 +28,7 @@
                     <input type="password" id="confirm-password" required>
                 </div>
                 <div id="error-message" style="color: red; display: none;"></div>
-                <button type="button" onclick="signupUser()" class="btn-primary">Create Account</button>
+                <button type="submit" class="btn-primary">Create Account</button>
             </form>
             <p class="auth-link">Already have an account? <a href="/login">Login</a></p>
         </div>

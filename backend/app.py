@@ -6,7 +6,7 @@ import ast
 import operator
 import json
 from urllib.parse import urlparse
-from flask import Flask, request, jsonify, send_from_directory, render_template, session, redirect
+from flask import Flask, request, jsonify, send_from_directory, render_template, session, redirect, make_response
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static', template_folder='templates', static_url_path='')
@@ -39,22 +39,10 @@ def guess_content_type(filename: str) -> str:
     return content_type or ""
 
 def build_image_summary(filename: str, content_type: str, size_bytes: int, digest: str) -> str:
-    return f"filename={filename};content_type={content_type};bytes={size_bytes};sha256={digest}"
+    return "Unable to generate summary from this image. Please try another image."
 
 def build_image_mcqs(filename: str, content_type: str, size_bytes: int, digest: str):
-    digest_prefix = digest[:12]
-    return [
-        {
-            "question": "Which value matches the file size in bytes?",
-            "options": [str(size_bytes), filename, content_type, digest_prefix],
-            "answer": str(size_bytes),
-        },
-        {
-            "question": "Which value matches the SHA-256 prefix?",
-            "options": [digest_prefix, filename, content_type, str(size_bytes)],
-            "answer": digest_prefix,
-        },
-    ]
+    return []
 
 _ALLOWED_AST_NODES = {
     ast.Expression,
@@ -185,7 +173,7 @@ def build_youtube_payload(url: str):
 def index():
     if 'username' in session:
         return redirect('/home')
-    return render_template('index.html')
+    return redirect('/signup')
 
 @app.route('/image')
 def image():
@@ -285,30 +273,7 @@ def youtube_process():
         "notes": notes
     })
 
-@app.route('/signup', methods=['POST'])
-def signup_post():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    if not username or not password:
-        return jsonify({"error": "Username and password required"}), 400
-    users = load_users()
-    if username in users:
-        return jsonify({"error": "User already exists"}), 400
-    users[username] = password
-    save_users(users)
-    return jsonify({"message": "User created successfully"}), 201
 
-@app.route('/login', methods=['POST'])
-def login_post():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    users = load_users()
-    if username not in users or users[username] != password:
-        return jsonify({"error": "Invalid credentials"}), 401
-    session['username'] = username
-    return jsonify({"message": "Login successful"}), 200
 
 @app.route('/home')
 def home():
@@ -336,8 +301,12 @@ def notes():
 
 @app.route('/logout')
 def logout():
-    session.pop('username', None)
-    return redirect('/')
+    session.clear()
+    response = make_response(redirect('/signup'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True)

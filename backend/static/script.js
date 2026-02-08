@@ -5,6 +5,25 @@ function togglePassword(inputId) {
     input.setAttribute('type', type);
 }
 
+// Add event listeners for password toggles
+document.addEventListener('DOMContentLoaded', function() {
+    // For signup page
+    const signupToggle = document.querySelector('#signup-form .toggle-password');
+    if (signupToggle) {
+        signupToggle.addEventListener('click', function() {
+            togglePassword('signupPassword');
+        });
+    }
+
+    // For login page
+    const loginToggle = document.querySelector('#login-form .toggle-password');
+    if (loginToggle) {
+        loginToggle.addEventListener('click', function() {
+            togglePassword('password');
+        });
+    }
+});
+
 // Login function
 function loginUser() {
     const username = document.getElementById('username').value;
@@ -296,16 +315,6 @@ function closeModal() {
     document.getElementById('uploadModal').style.display = 'none';
 }
 
-function openCamera() {
-    closeModal();
-    document.getElementById('cameraInput').click();
-}
-
-function openGallery() {
-    closeModal();
-    document.getElementById('imageInput').click();
-}
-
 // Close modal when clicking outside
 window.onclick = function(event) {
     const modal = document.getElementById('uploadModal');
@@ -331,13 +340,35 @@ function closeProfileModal() {
 }
 
 function openCamera() {
-    closeProfileModal();
-    document.getElementById('cameraInput').click();
+    const uploadModal = document.getElementById('uploadModal');
+    if (uploadModal) {
+        uploadModal.style.display = 'none';
+    }
+    const profileModal = document.getElementById('profileModal');
+    if (profileModal) {
+        profileModal.style.display = 'none';
+    }
+    const cameraInput = document.getElementById('cameraInput');
+    if (cameraInput) {
+        cameraInput.click();
+    }
 }
 
 function openGallery() {
-    closeProfileModal();
-    document.getElementById('galleryInput').click();
+    const uploadModal = document.getElementById('uploadModal');
+    if (uploadModal) {
+        uploadModal.style.display = 'none';
+    }
+    const profileModal = document.getElementById('profileModal');
+    if (profileModal) {
+        profileModal.style.display = 'none';
+    }
+    const galleryInput = document.getElementById('galleryInput');
+    const imageInput = document.getElementById('imageInput');
+    const input = galleryInput || imageInput;
+    if (input) {
+        input.click();
+    }
 }
 
 function showBuiltInAvatars() {
@@ -373,44 +404,58 @@ function cropAndSaveImage() {
         localStorage.setItem('profileImage', dataURL);
         document.getElementById('profileImage').src = dataURL;
         closeCropModal();
+        // Persist across sessions
     }
 }
 
 function logoutUser() {
-    localStorage.removeItem('username');
-    localStorage.removeItem('profileImage');
-    localStorage.removeItem('language');
+    localStorage.clear();
     window.location.href = '/logout';
 }
 
 function applyLanguage(lang) {
     localStorage.setItem('language', lang);
     document.documentElement.className = lang === 'hi' ? 'language-hi' : '';
-    // No reload, just update the class
+    // Update greeting text without reload
+    const greetingEn = document.querySelector('.greeting-en');
+    const greetingHi = document.querySelector('.greeting-hi');
+    if (lang === 'hi') {
+        greetingEn.style.display = 'none';
+        greetingHi.style.display = 'block';
+    } else {
+        greetingEn.style.display = 'block';
+        greetingHi.style.display = 'none';
+    }
 }
 
 // Event listeners for file inputs
-document.getElementById('cameraInput').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            showCropModal(e.target.result);
-        };
-        reader.readAsDataURL(file);
-    }
-});
+const cameraInputEl = document.getElementById('cameraInput');
+if (cameraInputEl) {
+    cameraInputEl.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModal(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
 
-document.getElementById('galleryInput').addEventListener('change', function(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            showCropModal(e.target.result);
-        };
-        reader.readAsDataURL(file);
-    }
-});
+const galleryInputEl = document.getElementById('galleryInput');
+if (galleryInputEl) {
+    galleryInputEl.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                showCropModal(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
 
 function showCropModal(imageSrc) {
     const cropContainer = document.getElementById('cropContainer');
