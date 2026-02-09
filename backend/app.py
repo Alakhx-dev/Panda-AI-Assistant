@@ -1,27 +1,20 @@
 import os
 import re
 import json
-import ast
-import operator
 import openai
 from flask import Flask, request, jsonify, render_template, session, redirect, make_response
 from flask_cors import CORS
-try:
-    import pytesseract
-    from PIL import Image
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
+import pytesseract
+from PIL import Image
 
 app = Flask(__name__, static_folder='static', template_folder='templates', static_url_path='')
 app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 CORS(app)
 
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable is not set")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-openai.api_key = OPENAI_API_KEY
+# Explicitly set Tesseract path for Windows
+pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 
 USERS_FILE = 'users.json'
 
@@ -39,71 +32,36 @@ def get_video_id(url):
     match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
     return match.group(1) if match else None
 
-def summarize_text(text: str) -> str:
-    """Summarize text using OpenAI GPT-4o-mini."""
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes text concisely."},
-                {"role": "user", "content": f"Summarize the following text in 100-150 words:\n\n{text}"}
-            ],
-            max_tokens=200,
-            temperature=0.5
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"Error summarizing text: {e}")
-        return ""
+def openai_chat(prompt: str) -> str:
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.5
+    )
+    return response.choices[0].message["content"].strip()
 
-def answer_question(question: str) -> dict:
-    """Answer a question using OpenAI GPT-4o-mini."""
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that answers questions accurately and concisely."},
-                {"role": "user", "content": question}
-            ],
-            max_tokens=500,
-            temperature=0.5
-        )
-        answer = response.choices[0].message.content.strip()
-        return {
-            "steps": ["Answer: " + answer],
-            "final_answer": answer,
-        }
-    except Exception as e:
-        print(f"Error answering question: {e}")
-        error_msg = "Sorry, I couldn't generate an answer right now. Please try again."
-        return {
-            "steps": [error_msg],
-            "final_answer": error_msg,
-        }
+def summarize_text(text: str) -> str:
+    prompt = (
+        "Summarize the following text in 100-150 words:\n\n"
+        f"{text}"
+    )
+    return openai_chat(prompt)
+
+def answer_question_text(question: str) -> str:
+    return openai_chat(question)
 
 def generate_mcqs(summary: str):
-    """Generate MCQs from summary using OpenAI GPT-4o-mini."""
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that generates multiple-choice questions (MCQs) from a given summary. Each MCQ should have a question, four options (A, B, C, D), and the correct answer. Format the output as a JSON array of objects, each with 'question', 'options' (array of 4 strings), and 'answer' (the correct option text). Generate up to 5 MCQs."},
-                {"role": "user", "content": f"Generate MCQs from the following summary:\n\n{summary}"}
-            ],
-            max_tokens=1000,
-            temperature=0.7
-        )
-        generated_text = response.choices[0].message.content.strip()
-        # Try to parse as JSON
-        import json
-        mcqs = json.loads(generated_text)
-        if isinstance(mcqs, list):
-            return mcqs[:5]  # Limit to 5
-        else:
-            return []
-    except Exception as e:
-        print(f"Error generating MCQs: {e}")
-        return []
+    prompt = (
+        "Generate up to 5 MCQs from the following summary. "
+        "Return a JSON array of objects, each with keys: "
+        "question, options (array of 4 strings), and answer (correct option text).\n\n"
+        f"{summary}"
+    )
+    generated_text = openai_chat(prompt)
+    mcqs = json.loads(generated_text)
+    if isinstance(mcqs, list):
+        return mcqs[:5]
+    return []
 
 
 
@@ -159,100 +117,110 @@ def signup():
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
-    if not OCR_AVAILABLE:
-        return jsonify({"summary": None, "mcqs": [], "error": "OCR is currently disabled. Please install Tesseract OCR to enable image text extraction."}), 503
-
-    if "image" not in request.files:
-        return jsonify({"summary": None, "mcqs": [], "error": "Image not found"}), 400
-
-    image = request.files["image"]
-
-    if image.filename == "":
-        return jsonify({"summary": None, "mcqs": [], "error": "Empty filename"}), 400
-
-    # Save image temporarily for OCR
-    import tempfile
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-        image.save(temp_file.name)
-        temp_path = temp_file.name
-
     try:
-        # Perform OCR using pytesseract
-        img = Image.open(temp_path)
-        extracted_text = pytesseract.image_to_string(img).strip()
+        if "image" not in request.files:
+            return jsonify({"summary": None, "mcqs": [], "error": "Image not found"}), 400
 
-        if not extracted_text or len(extracted_text) < 10:
-            return jsonify({"summary": None, "mcqs": [], "error": "Unable to extract readable text from image."}), 400
+        image = request.files["image"]
 
-        # Summarize the extracted text
-        summary = summarize_text(extracted_text)
+        if image.filename == "":
+            return jsonify({"summary": None, "mcqs": [], "error": "Empty filename"}), 400
+
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+            image.save(temp_file.name)
+            temp_path = temp_file.name
+
+        try:
+            img = Image.open(temp_path)
+            extracted_text = pytesseract.image_to_string(img).strip()
+
+            if not extracted_text:
+                return jsonify({"summary": None, "mcqs": [], "error": "No readable text found in image"}), 400
+
+            summary = summarize_text(extracted_text)
+            if not summary:
+                return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary"}), 500
+
+            mcqs = generate_mcqs(summary)
+            if not mcqs:
+                return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate MCQs"}), 500
+
+            return jsonify({
+                "summary": summary,
+                "mcqs": mcqs,
+                "error": None
+            })
+        finally:
+            os.unlink(temp_path)
+    except Exception:
+        return jsonify({"summary": None, "mcqs": [], "error": "Failed to process image"}), 500
+
+@app.route('/solve-question', methods=['POST'])
+def solve_question():
+    try:
+        data = request.get_json()
+        if not data or 'question' not in data:
+            return jsonify({"summary": None, "mcqs": [], "error": "No question provided"}), 400
+
+        question = data['question'].strip()
+        if not question:
+            return jsonify({"summary": None, "mcqs": [], "error": "No question provided"}), 400
+
+        summary = answer_question_text(question)
         if not summary:
-            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary."}), 500
+            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate answer"}), 500
 
-        # Generate MCQs from summary
         mcqs = generate_mcqs(summary)
+        if not mcqs:
+            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate MCQs"}), 500
 
         return jsonify({
             "summary": summary,
             "mcqs": mcqs,
             "error": None
         })
-    finally:
-        import os
-        os.unlink(temp_path)
-
-@app.route('/solve-question', methods=['POST'])
-def solve_question():
-    data = request.get_json()
-    if not data or 'question' not in data:
-        return jsonify({"status": "error", "message": "No question provided"}), 400
-
-    question = data['question']
-    solution = answer_question(question)
-
-    return jsonify({
-        "solution": solution
-    })
+    except Exception:
+        return jsonify({"summary": None, "mcqs": [], "error": "Failed to process question"}), 500
 
 @app.route('/youtube-process', methods=['POST'])
 def youtube_process():
-    data = request.get_json()
-
-    if not data or "url" not in data:
-        return jsonify({"summary": None, "mcqs": [], "error": "URL missing"}), 400
-
-    url = data["url"]
-    video_id = get_video_id(url)
-    if not video_id:
-        return jsonify({"summary": None, "mcqs": [], "error": "Invalid YouTube URL"}), 400
-
     try:
-        from youtube_transcript_api import YouTubeTranscriptApi
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-        transcript_text = ' '.join([item['text'] for item in transcript_list]).strip()
+        data = request.get_json()
+
+        if not data or "url" not in data:
+            return jsonify({"summary": None, "mcqs": [], "error": "URL missing"}), 400
+
+        url = data["url"]
+        video_id = get_video_id(url)
+        if not video_id:
+            return jsonify({"summary": None, "mcqs": [], "error": "Invalid YouTube URL"}), 400
+
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            transcript_text = ' '.join([item['text'] for item in transcript_list]).strip()
+        except Exception:
+            return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available"}), 400
 
         if not transcript_text:
-            return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available for this video."}), 400
+            return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available"}), 400
 
-        # Summarize the transcript
         summary = summarize_text(transcript_text)
         if not summary:
-            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary."}), 500
+            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary"}), 500
 
-        # Generate MCQs from summary
         mcqs = generate_mcqs(summary)
+        if not mcqs:
+            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate MCQs"}), 500
 
-        response_payload = {
+        return jsonify({
             "summary": summary,
             "mcqs": mcqs,
             "error": None
-        }
-        if data.get("include_notes"):
-            # For notes, perhaps include some metadata, but since task doesn't specify, keep minimal
-            response_payload["notes"] = [f"video_id={video_id}", f"url={url}"]
-        return jsonify(response_payload)
-    except Exception as e:
-        return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available for this video."}), 400
+        })
+    except Exception:
+        return jsonify({"summary": None, "mcqs": [], "error": "Failed to process YouTube request"}), 500
 
 
 
@@ -290,5 +258,5 @@ def logout():
     return response
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
             
