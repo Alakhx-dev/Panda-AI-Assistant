@@ -1,14 +1,10 @@
 import os
 import re
-import hashlib
-import mimetypes
+import json
 import ast
 import operator
-import json
-import requests
 import openai
-from urllib.parse import urlparse
-from flask import Flask, request, jsonify, send_from_directory, render_template, session, redirect, make_response
+from flask import Flask, request, jsonify, render_template, session, redirect, make_response
 from flask_cors import CORS
 try:
     import pytesseract
@@ -27,8 +23,6 @@ if not OPENAI_API_KEY:
 
 openai.api_key = OPENAI_API_KEY
 
-topics = ["mathematics", "physics", "chemistry", "biology", "history", "literature"]
-
 USERS_FILE = 'users.json'
 
 def load_users():
@@ -44,13 +38,6 @@ def save_users(users):
 def get_video_id(url):
     match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
     return match.group(1) if match else None
-
-def sha256_hex(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-def guess_content_type(filename: str) -> str:
-    content_type, _ = mimetypes.guess_type(filename)
-    return content_type or ""
 
 def summarize_text(text: str) -> str:
     """Summarize text using OpenAI GPT-4o-mini."""
@@ -68,6 +55,31 @@ def summarize_text(text: str) -> str:
     except Exception as e:
         print(f"Error summarizing text: {e}")
         return ""
+
+def answer_question(question: str) -> dict:
+    """Answer a question using OpenAI GPT-4o-mini."""
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that answers questions accurately and concisely."},
+                {"role": "user", "content": question}
+            ],
+            max_tokens=500,
+            temperature=0.5
+        )
+        answer = response.choices[0].message.content.strip()
+        return {
+            "steps": ["Answer: " + answer],
+            "final_answer": answer,
+        }
+    except Exception as e:
+        print(f"Error answering question: {e}")
+        error_msg = "Sorry, I couldn't generate an answer right now. Please try again."
+        return {
+            "steps": [error_msg],
+            "final_answer": error_msg,
+        }
 
 def generate_mcqs(summary: str):
     """Generate MCQs from summary using OpenAI GPT-4o-mini."""
@@ -92,94 +104,6 @@ def generate_mcqs(summary: str):
     except Exception as e:
         print(f"Error generating MCQs: {e}")
         return []
-
-_ALLOWED_AST_NODES = {
-    ast.Expression,
-    ast.BinOp,
-    ast.UnaryOp,
-    ast.Add,
-    ast.Sub,
-    ast.Mult,
-    ast.Div,
-    ast.Pow,
-    ast.Mod,
-    ast.USub,
-    ast.UAdd,
-    ast.Constant,
-    ast.FloorDiv,
-    ast.LShift,
-    ast.RShift,
-    ast.BitOr,
-    ast.BitAnd,
-    ast.BitXor,
-}
-
-_OPERATORS = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.FloorDiv: operator.floordiv,
-    ast.Mod: operator.mod,
-    ast.Pow: operator.pow,
-    ast.BitOr: operator.or_,
-    ast.BitAnd: operator.and_,
-    ast.BitXor: operator.xor,
-    ast.LShift: operator.lshift,
-    ast.RShift: operator.rshift,
-    ast.UAdd: operator.pos,
-    ast.USub: operator.neg,
-}
-
-def extract_math_expression(text: str) -> str | None:
-    matches = re.findall(r"[0-9\.\+\-\*\/\%\(\)\^\|\&\<\>]+", text)
-    if not matches:
-        return None
-    candidate = max(matches, key=len)
-    if re.search(r"\d", candidate) is None:
-        return None
-    return candidate.replace("^", "**")
-
-def safe_eval_expr(expression: str):
-    def _eval(node):
-        if type(node) not in _ALLOWED_AST_NODES:
-            raise ValueError("unsupported_expression")
-        if isinstance(node, ast.Expression):
-            return _eval(node.body)
-        if isinstance(node, ast.Constant):
-            if isinstance(node.value, (int, float)):
-                return node.value
-            raise ValueError("unsupported_constant")
-        if isinstance(node, ast.UnaryOp):
-            op = _OPERATORS.get(type(node.op))
-            if op is None:
-                raise ValueError("unsupported_operator")
-            return op(_eval(node.operand))
-        if isinstance(node, ast.BinOp):
-            op = _OPERATORS.get(type(node.op))
-            if op is None:
-                raise ValueError("unsupported_operator")
-            return op(_eval(node.left), _eval(node.right))
-        raise ValueError("unsupported_node")
-
-    parsed = ast.parse(expression, mode="eval")
-    return _eval(parsed)
-
-def build_solution(question: str):
-    expression = extract_math_expression(question)
-    if expression:
-        try:
-            value = safe_eval_expr(expression)
-            return {
-                "steps": [f"expression={expression}", f"result={value}"],
-                "final_answer": str(value),
-            }
-        except Exception:
-            pass
-    return {
-        "steps": [f"question={question}", f"length={len(question)}"],
-        "final_answer": "",
-    }
 
 
 
@@ -284,7 +208,7 @@ def solve_question():
         return jsonify({"status": "error", "message": "No question provided"}), 400
 
     question = data['question']
-    solution = build_solution(question)
+    solution = answer_question(question)
 
     return jsonify({
         "solution": solution
