@@ -6,21 +6,26 @@ import ast
 import operator
 import json
 import requests
-import easyocr
+import openai
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_from_directory, render_template, session, redirect, make_response
 from flask_cors import CORS
+try:
+    import pytesseract
+    from PIL import Image
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
 
 app = Flask(__name__, static_folder='static', template_folder='templates', static_url_path='')
 app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 CORS(app)
 
-HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY')
-if not HUGGINGFACE_API_KEY:
-    raise ValueError("HUGGINGFACE_API_KEY environment variable is not set")
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+if not OPENAI_API_KEY:
+    raise ValueError("OPENAI_API_KEY environment variable is not set")
 
-# Initialize EasyOCR reader
-reader = easyocr.Reader(['en'])
+openai.api_key = OPENAI_API_KEY
 
 topics = ["mathematics", "physics", "chemistry", "biology", "history", "literature"]
 
@@ -48,56 +53,45 @@ def guess_content_type(filename: str) -> str:
     return content_type or ""
 
 def summarize_text(text: str) -> str:
-    """Summarize text using Hugging Face facebook/bart-large-cnn model."""
-    url = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
-    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    payload = {"inputs": text, "parameters": {"max_length": 150, "min_length": 30}}
-    response = requests.post(url, headers=headers, json=payload)
-    if response.status_code == 200:
-        result = response.json()
-        if isinstance(result, list) and result:
-            return result[0].get("summary_text", "")
-    return ""
+    """Summarize text using OpenAI GPT-4o-mini."""
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes text concisely."},
+                {"role": "user", "content": f"Summarize the following text in 100-150 words:\n\n{text}"}
+            ],
+            max_tokens=200,
+            temperature=0.5
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Error summarizing text: {e}")
+        return ""
 
 def generate_mcqs(summary: str):
-    """Generate MCQs from summary using Hugging Face iarfmoose/t5-base-question-generator."""
-    url = "https://api-inference.huggingface.co/models/iarfmoose/t5-base-question-generator"
-    headers = {"Authorization": f"Bearer {HUGGINGFACE_API_KEY}"}
-    # Generate questions from summary
-    payload = {"inputs": f"generate questions: {summary}", "parameters": {"max_length": 100}}
-    response = requests.post(url, headers=headers, json=payload)
-    mcqs = []
-    if response.status_code == 200:
-        result = response.json()
-        if isinstance(result, list) and result:
-            generated_text = result[0].get("generated_text", "")
-            # Parse generated text to extract questions and answers
-            # Assuming format like "Question: ... Answer: ..."
-            lines = generated_text.split('\n')
-            questions = []
-            answers = []
-            for line in lines:
-                if line.startswith("Question:"):
-                    questions.append(line.replace("Question:", "").strip())
-                elif line.startswith("Answer:"):
-                    answers.append(line.replace("Answer:", "").strip())
-            # Create MCQs with options
-            for i, q in enumerate(questions[:5]):  # Limit to 5 MCQs
-                correct_answer = answers[i] if i < len(answers) else "Unknown"
-                # Generate distractors from summary words
-                words = summary.split()
-                distractors = [w for w in words if w.lower() != correct_answer.lower()][:3]
-                if len(distractors) < 3:
-                    distractors.extend(["Option A", "Option B", "Option C"][:3-len(distractors)])
-                options = [correct_answer] + distractors
-                import random
-                random.shuffle(options)
-                mcqs.append({
-                    "question": q,
-                    "options": options,
-                    "answer": correct_answer
-                })
-    return mcqs
+    """Generate MCQs from summary using OpenAI GPT-4o-mini."""
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that generates multiple-choice questions (MCQs) from a given summary. Each MCQ should have a question, four options (A, B, C, D), and the correct answer. Format the output as a JSON array of objects, each with 'question', 'options' (array of 4 strings), and 'answer' (the correct option text). Generate up to 5 MCQs."},
+                {"role": "user", "content": f"Generate MCQs from the following summary:\n\n{summary}"}
+            ],
+            max_tokens=1000,
+            temperature=0.7
+        )
+        generated_text = response.choices[0].message.content.strip()
+        # Try to parse as JSON
+        import json
+        mcqs = json.loads(generated_text)
+        if isinstance(mcqs, list):
+            return mcqs[:5]  # Limit to 5
+        else:
+            return []
+    except Exception as e:
+        print(f"Error generating MCQs: {e}")
+        return []
 
 _ALLOWED_AST_NODES = {
     ast.Expression,
@@ -241,6 +235,9 @@ def signup():
 
 @app.route('/upload-image', methods=['POST'])
 def upload_image():
+    if not OCR_AVAILABLE:
+        return jsonify({"summary": None, "mcqs": [], "error": "OCR is currently disabled. Please install Tesseract OCR to enable image text extraction."}), 503
+
     if "image" not in request.files:
         return jsonify({"summary": None, "mcqs": [], "error": "Image not found"}), 400
 
@@ -256,9 +253,9 @@ def upload_image():
         temp_path = temp_file.name
 
     try:
-        # Perform OCR
-        results = reader.readtext(temp_path)
-        extracted_text = ' '.join([text for _, text, _ in results]).strip()
+        # Perform OCR using pytesseract
+        img = Image.open(temp_path)
+        extracted_text = pytesseract.image_to_string(img).strip()
 
         if not extracted_text or len(extracted_text) < 10:
             return jsonify({"summary": None, "mcqs": [], "error": "Unable to extract readable text from image."}), 400

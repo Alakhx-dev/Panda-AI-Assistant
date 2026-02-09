@@ -2,4 +2,7 @@ Flask==2.3.3
 Flask-CORS==4.0.0
 requests==2.31.0
 youtube-transcript-api==0.6.1
-easyocr==1.7.1
+pytesseract==0.3.10
+Pillow==10.0.1
+openai==0.28.1
+pydantic==1.10.13
