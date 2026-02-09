@@ -1,21 +1,11 @@
 import os
 import google.generativeai as genai
-
-API_KEY = os.getenv("GEMINI_API_KEY")
-
-if not API_KEY:
-    raise RuntimeError("GEMINI_API_KEY not set")
-
-genai.configure(api_key=API_KEY)
-
-MODEL_NAME = "models/gemini-1.5-flash"
-
-model = genai.GenerativeModel(MODEL_NAME)
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 import re
 import json
 import io
-from google.api_core.exceptions import NotFound
 from flask import Flask, request, jsonify, render_template, session, redirect, make_response
 from flask_cors import CORS
 import pytesseract
@@ -44,28 +34,15 @@ def get_video_id(url):
     match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
     return match.group(1) if match else None
 
-def gemini_chat(prompt: str) -> str:
+def generate_summary(text):
+    if not text or len(text) < 30:
+        return None
     try:
-        response = model.generate_content(prompt)
-        return response.text.strip()
-    except NotFound:
-        raise Exception("AI Model configuration error. Please update the SDK.")
-    except Exception as e:
-        raise Exception(f"Gemini API error: {str(e)}")
-
-def summarize_text(text: str) -> str:
-    prompt = (
-        "Summarize this for a student in short, clear bullet points.\n\n"
-        f"{text}"
-    )
-    return gemini_chat(prompt)
-
-def answer_question_text(question: str) -> str:
-    return gemini_chat(question)
-
-def summarize_youtube_fallback(url: str) -> str:
-    prompt = f"The transcript is unavailable, please provide a general summary based on this URL and its title: {url}"
-    return gemini_chat(prompt)
+        return model.generate_content(
+            f"Summarize this text clearly:\n{text}"
+        ).text
+    except Exception:
+        return None
 
 @app.route('/')
 def index():
@@ -119,12 +96,12 @@ def signup():
 def upload_image():
     try:
         if "image" not in request.files:
-            return jsonify({"summary": None, "error": "Image not found"}), 400
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 400
 
         image = request.files["image"]
 
         if image.filename == "":
-            return jsonify({"summary": None, "error": "Empty filename"}), 400
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 400
 
         # Process image in memory using io.BytesIO
         image_bytes = io.BytesIO(image.read())
@@ -132,76 +109,36 @@ def upload_image():
         extracted_text = pytesseract.image_to_string(img).strip()
 
         if len(extracted_text) < 10:
-            return jsonify({"summary": None, "error": "Image text unreadable. Please upload a clearer photo."})
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 400
 
-        summary = summarize_text(extracted_text)
-        return jsonify({
-            "summary": summary,
-            "error": None
-        })
+        summary = generate_summary(extracted_text)
+        if not summary:
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 500
+        return jsonify({"summary": summary, "error": None})
     except Exception as e:
-        return jsonify({"summary": None, "error": f"Failed to process image: {str(e)}"}), 500
+        return jsonify({"summary": None, "error": "Unable to generate summary"}), 500
 
 @app.route('/solve-question', methods=['POST'])
 def solve_question():
     try:
         data = request.get_json()
         if not data or 'question' not in data:
-            return jsonify({"summary": None, "error": "No question provided"}), 400
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 400
 
         question = data['question'].strip()
         if not question:
-            return jsonify({"summary": None, "error": "No question provided"}), 400
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 400
 
-        summary = answer_question_text(question)
-        return jsonify({
-            "summary": summary,
-            "error": None
-        })
+        summary = generate_summary(question)
+        if not summary:
+            return jsonify({"summary": None, "error": "Unable to generate summary"}), 500
+        return jsonify({"summary": summary, "error": None})
     except Exception as e:
-        return jsonify({"summary": None, "error": f"Failed to process question: {str(e)}"}), 500
+        return jsonify({"summary": None, "error": "Unable to generate summary"}), 500
 
 @app.route('/youtube-process', methods=['POST'])
 def youtube_process():
-    try:
-        data = request.get_json()
-
-        if not data or "url" not in data:
-            return jsonify({"summary": None, "error": "URL missing"}), 400
-
-        url = data["url"]
-        video_id = get_video_id(url)
-        if not video_id:
-            return jsonify({"summary": None, "error": "Invalid YouTube URL"}), 400
-
-        transcript_text = None
-        try:
-            from youtube_transcript_api import YouTubeTranscriptApi
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-            transcript_text = ' '.join([item['text'] for item in transcript_list]).strip()
-        except Exception:
-            # Fallback to Gemini
-            summary = summarize_youtube_fallback(url)
-            return jsonify({
-                "summary": summary,
-                "error": None
-            })
-
-        if not transcript_text:
-            # Fallback to Gemini
-            summary = summarize_youtube_fallback(url)
-            return jsonify({
-                "summary": summary,
-                "error": None
-            })
-
-        summary = summarize_text(transcript_text)
-        return jsonify({
-            "summary": summary,
-            "error": None
-        })
-    except Exception as e:
-        return jsonify({"summary": None, "error": f"Failed to process YouTube request: {str(e)}"}), 500
+    return jsonify({"summary": None, "error": "YouTube summary is temporarily disabled"}), 200
 
 @app.route('/home')
 def home():
