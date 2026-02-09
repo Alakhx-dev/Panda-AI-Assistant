@@ -1,7 +1,8 @@
 import os
 import re
 import json
-import openai
+import io
+import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template, session, redirect, make_response
 from flask_cors import CORS
 import pytesseract
@@ -11,7 +12,8 @@ app = Flask(__name__, static_folder='static', template_folder='templates', stati
 app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 CORS(app)
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Explicitly set Tesseract path for Windows
 pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
@@ -32,38 +34,26 @@ def get_video_id(url):
     match = re.search(r'(?:v=|\/)([0-9A-Za-z_-]{11}).*', url)
     return match.group(1) if match else None
 
-def openai_chat(prompt: str) -> str:
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.5
-    )
-    return response.choices[0].message["content"].strip()
+def gemini_chat(prompt: str) -> str:
+    try:
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        raise Exception(f"Gemini API error: {str(e)}")
 
 def summarize_text(text: str) -> str:
     prompt = (
-        "Summarize the following text in 100-150 words:\n\n"
+        "Summarize this for a student in short, clear bullet points.\n\n"
         f"{text}"
     )
-    return openai_chat(prompt)
+    return gemini_chat(prompt)
 
 def answer_question_text(question: str) -> str:
-    return openai_chat(question)
+    return gemini_chat(question)
 
-def generate_mcqs(summary: str):
-    prompt = (
-        "Generate up to 5 MCQs from the following summary. "
-        "Return a JSON array of objects, each with keys: "
-        "question, options (array of 4 strings), and answer (correct option text).\n\n"
-        f"{summary}"
-    )
-    generated_text = openai_chat(prompt)
-    mcqs = json.loads(generated_text)
-    if isinstance(mcqs, list):
-        return mcqs[:5]
-    return []
-
-
+def summarize_youtube_fallback(url: str) -> str:
+    prompt = f"The transcript is unavailable, please provide a general summary based on this URL and its title: {url}"
+    return gemini_chat(prompt)
 
 @app.route('/')
 def index():
@@ -119,69 +109,47 @@ def signup():
 def upload_image():
     try:
         if "image" not in request.files:
-            return jsonify({"summary": None, "mcqs": [], "error": "Image not found"}), 400
+            return jsonify({"summary": None, "error": "Image not found"}), 400
 
         image = request.files["image"]
 
         if image.filename == "":
-            return jsonify({"summary": None, "mcqs": [], "error": "Empty filename"}), 400
+            return jsonify({"summary": None, "error": "Empty filename"}), 400
 
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-            image.save(temp_file.name)
-            temp_path = temp_file.name
+        # Process image in memory using io.BytesIO
+        image_bytes = io.BytesIO(image.read())
+        img = Image.open(image_bytes)
+        extracted_text = pytesseract.image_to_string(img).strip()
 
-        try:
-            img = Image.open(temp_path)
-            extracted_text = pytesseract.image_to_string(img).strip()
+        if len(extracted_text) < 10:
+            return jsonify({"summary": None, "error": "Image text unreadable. Please upload a clearer photo."})
 
-            if not extracted_text:
-                return jsonify({"summary": None, "mcqs": [], "error": "No readable text found in image"}), 400
-
-            summary = summarize_text(extracted_text)
-            if not summary:
-                return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary"}), 500
-
-            mcqs = generate_mcqs(summary)
-            if not mcqs:
-                return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate MCQs"}), 500
-
-            return jsonify({
-                "summary": summary,
-                "mcqs": mcqs,
-                "error": None
-            })
-        finally:
-            os.unlink(temp_path)
-    except Exception:
-        return jsonify({"summary": None, "mcqs": [], "error": "Failed to process image"}), 500
+        summary = summarize_text(extracted_text)
+        return jsonify({
+            "summary": summary,
+            "error": None
+        })
+    except Exception as e:
+        return jsonify({"summary": None, "error": f"Failed to process image: {str(e)}"}), 500
 
 @app.route('/solve-question', methods=['POST'])
 def solve_question():
     try:
         data = request.get_json()
         if not data or 'question' not in data:
-            return jsonify({"summary": None, "mcqs": [], "error": "No question provided"}), 400
+            return jsonify({"summary": None, "error": "No question provided"}), 400
 
         question = data['question'].strip()
         if not question:
-            return jsonify({"summary": None, "mcqs": [], "error": "No question provided"}), 400
+            return jsonify({"summary": None, "error": "No question provided"}), 400
 
         summary = answer_question_text(question)
-        if not summary:
-            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate answer"}), 500
-
-        mcqs = generate_mcqs(summary)
-        if not mcqs:
-            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate MCQs"}), 500
-
         return jsonify({
             "summary": summary,
-            "mcqs": mcqs,
             "error": None
         })
-    except Exception:
-        return jsonify({"summary": None, "mcqs": [], "error": "Failed to process question"}), 500
+    except Exception as e:
+        return jsonify({"summary": None, "error": f"Failed to process question: {str(e)}"}), 500
 
 @app.route('/youtube-process', methods=['POST'])
 def youtube_process():
@@ -189,40 +157,41 @@ def youtube_process():
         data = request.get_json()
 
         if not data or "url" not in data:
-            return jsonify({"summary": None, "mcqs": [], "error": "URL missing"}), 400
+            return jsonify({"summary": None, "error": "URL missing"}), 400
 
         url = data["url"]
         video_id = get_video_id(url)
         if not video_id:
-            return jsonify({"summary": None, "mcqs": [], "error": "Invalid YouTube URL"}), 400
+            return jsonify({"summary": None, "error": "Invalid YouTube URL"}), 400
 
+        transcript_text = None
         try:
             from youtube_transcript_api import YouTubeTranscriptApi
             transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
             transcript_text = ' '.join([item['text'] for item in transcript_list]).strip()
         except Exception:
-            return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available"}), 400
+            # Fallback to Gemini
+            summary = summarize_youtube_fallback(url)
+            return jsonify({
+                "summary": summary,
+                "error": None
+            })
 
         if not transcript_text:
-            return jsonify({"summary": None, "mcqs": [], "error": "Transcript not available"}), 400
+            # Fallback to Gemini
+            summary = summarize_youtube_fallback(url)
+            return jsonify({
+                "summary": summary,
+                "error": None
+            })
 
         summary = summarize_text(transcript_text)
-        if not summary:
-            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate summary"}), 500
-
-        mcqs = generate_mcqs(summary)
-        if not mcqs:
-            return jsonify({"summary": None, "mcqs": [], "error": "Failed to generate MCQs"}), 500
-
         return jsonify({
             "summary": summary,
-            "mcqs": mcqs,
             "error": None
         })
-    except Exception:
-        return jsonify({"summary": None, "mcqs": [], "error": "Failed to process YouTube request"}), 500
-
-
+    except Exception as e:
+        return jsonify({"summary": None, "error": f"Failed to process YouTube request: {str(e)}"}), 500
 
 @app.route('/home')
 def home():
@@ -259,4 +228,3 @@ def logout():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True)
-            

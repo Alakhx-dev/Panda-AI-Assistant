@@ -1,7 +1,7 @@
 Flask
 flask-cors
-openai==0.28.1
-pydantic==1.10.13
+google-generativeai
 pytesseract
 Pillow
 youtube-transcript-api
+requests
