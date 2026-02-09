@@ -1,7 +1,6 @@
 Flask
 flask-cors
-google-generativeai
+google-generativeai>=0.8.6
 pytesseract
 Pillow
 youtube-transcript-api
-requests

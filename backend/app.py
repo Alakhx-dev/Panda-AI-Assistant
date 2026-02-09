@@ -1,8 +1,20 @@
 import os
+import google.generativeai as genai
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not API_KEY:
+    raise RuntimeError("GEMINI_API_KEY not set")
+
+genai.configure(api_key=API_KEY)
+
+MODEL_NAME = "models/gemini-1.5-flash"
+
+model = genai.GenerativeModel(MODEL_NAME)
+
 import re
 import json
 import io
-import google.generativeai as genai
 from google.api_core.exceptions import NotFound
 from flask import Flask, request, jsonify, render_template, session, redirect, make_response
 from flask_cors import CORS
@@ -12,9 +24,6 @@ from PIL import Image
 app = Flask(__name__, static_folder='static', template_folder='templates', static_url_path='')
 app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 CORS(app)
-
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Explicitly set Tesseract path for Windows
 pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
