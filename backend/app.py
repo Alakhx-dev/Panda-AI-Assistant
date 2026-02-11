@@ -1,9 +1,10 @@
 import os
 import re
 import io
+import json
 
 import google.generativeai as genai
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
 from PIL import Image
 import pytesseract
@@ -17,6 +18,7 @@ app = Flask(
     template_folder="../templates",
     static_folder="../static",
 )
+app.secret_key = 'your_secret_key_here'  # Change this to a secure key in production
 CORS(app)
 
 def get_video_id(url):
@@ -46,7 +48,57 @@ def generate_summary(text):
 
 @app.route('/')
 def home():
-    return render_template('summary.html')
+    if "user" not in session:
+        return redirect(url_for("signup"))
+    return redirect(url_for("summary"))
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not username or not password or password != confirm_password:
+            return render_template('signup.html', error="Invalid input or passwords do not match")
+
+        with open('users.json', 'r') as f:
+            users = json.load(f)
+
+        if username in users:
+            return render_template('signup.html', error="Username already exists")
+
+        users[username] = password
+        with open('users.json', 'w') as f:
+            json.dump(users, f)
+
+        session['user'] = username
+        return redirect(url_for('summary'))
+
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        with open('users.json', 'r') as f:
+            users = json.load(f)
+
+        if username in users and users[username] == password:
+            session['user'] = username
+            return redirect(url_for('summary'))
+        else:
+            return render_template('login.html', error="Invalid username or password")
+
+    return render_template('login.html')
+
+@app.route('/summary')
+def summary():
+    if "user" not in session:
+        return redirect(url_for("signup"))
+    return render_template("summary.html")
 
 def success_response(summary):
     return jsonify({"summary": summary, "error": None})
