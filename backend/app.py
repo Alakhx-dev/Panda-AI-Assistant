@@ -26,8 +26,12 @@ else:
     print("⚠️  WARNING: GEMINI_API_KEY not found in environment.")
     print("   Set it with: $env:GEMINI_API_KEY='your-key-here'")
 
-# Model – gemini-2.0-flash (supports both text and vision)
-model = genai.GenerativeModel("gemini-2.0-flash")
+# Models – primary + fallback for rate-limit resilience
+MODEL_PRIMARY = "gemini-2.0-flash-lite"
+MODEL_FALLBACK = "gemini-2.0-flash"
+model = genai.GenerativeModel(MODEL_PRIMARY)
+model_fallback = genai.GenerativeModel(MODEL_FALLBACK)
+print(f"✅ Models: primary={MODEL_PRIMARY}, fallback={MODEL_FALLBACK}")
 
 # Pytesseract – auto-discover on Windows
 if platform.system() == "Windows":
@@ -86,23 +90,31 @@ def get_transcript_text(url):
 
 def gemini_generate(prompt, max_retries=3):
     """
-    Call Gemini with automatic retry on rate-limit errors.
-    Supports both text prompts and multimodal (image) prompts.
+    Call Gemini with automatic retry and model fallback on rate-limit errors.
+    Strategy: try primary → if rate-limited, switch to fallback model → retry.
     """
-    for attempt in range(max_retries):
-        try:
-            response = model.generate_content(prompt)
-            return getattr(response, "text", None)
-        except Exception as e:
-            error_str = str(e).lower()
-            if "429" in error_str or "quota" in error_str or "resource" in error_str:
-                wait_time = (attempt + 1) * 15  # 15s, 30s, 45s
-                print(f"   ⏳ Rate limited (attempt {attempt+1}/{max_retries}), waiting {wait_time}s...")
-                time.sleep(wait_time)
-            else:
-                print(f"   Gemini error: {e}")
-                return None
-    print("   ❌ Max retries reached.")
+    models_to_try = [model, model_fallback]
+
+    for current_model in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                response = current_model.generate_content(prompt)
+                result = getattr(response, "text", None)
+                if result:
+                    return result
+            except Exception as e:
+                error_str = str(e).lower()
+                is_rate_limit = any(k in error_str for k in ["429", "quota", "resource_exhausted", "rate"])
+                if is_rate_limit:
+                    wait_time = (attempt + 1) * 5  # 5s, 10s, 15s
+                    print(f"   ⏳ Rate limited on {current_model.model_name} (attempt {attempt+1}/{max_retries}), waiting {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    print(f"   ❌ Gemini error: {e}")
+                    return None
+        print(f"   ⚠️ Switching to fallback model...")
+
+    print("   ❌ All models exhausted.")
     return None
 
 def generate_summary(text):
