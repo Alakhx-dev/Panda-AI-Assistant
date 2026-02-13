@@ -2,8 +2,14 @@ import os
 import re
 import io
 import json
+import sys
 import time
 import platform
+
+# Fix Windows console encoding for Unicode characters
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
@@ -211,7 +217,7 @@ def error_response(message, status=400):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return redirect(url_for("signup"))
 
 # ─── Auth Routes ────────────────────────────────────────────────────────────
 
