@@ -48,7 +48,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 transition-colors duration-300">
+    <div className="flex min-h-screen items-center justify-center bg-transparent px-4 transition-colors duration-300">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px]" />
@@ -72,7 +72,7 @@ const Auth = () => {
         </div>
 
         {/* Form card */}
-        <div className="rounded-2xl border border-border/30 bg-card/50 p-8 backdrop-blur-xl shadow-2xl shadow-primary/5">
+        <div className="rounded-2xl card-glass p-8 shadow-2xl shadow-primary/5">
           <h2 className="mb-1 text-center text-2xl font-bold text-foreground">
             {isSignUp ? t("createAccount") : t("welcomeBack")}
           </h2>
@@ -89,7 +89,7 @@ const Auth = () => {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border-border/50 bg-surface/50 placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                className="border-border/50 bg-white/5 placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
               />
             </div>
 
@@ -101,7 +101,7 @@ const Auth = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border-border/50 bg-surface/50 placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
+                className="border-border/50 bg-white/5 placeholder:text-muted-foreground/50 focus:border-primary/50 focus:ring-primary/20 transition-all"
               />
             </div>
 

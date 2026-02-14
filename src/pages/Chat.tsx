@@ -174,7 +174,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background transition-colors duration-300">
+    <div className="flex h-screen bg-transparent transition-colors duration-300">
       {/* Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -183,7 +183,7 @@ const Chat = () => {
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex h-full flex-col border-r border-border/30 bg-sidebar overflow-hidden"
+            className="flex h-full flex-col sidebar overflow-hidden"
           >
             <div className="flex items-center gap-2 p-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary animate-glow-pulse">
@@ -195,7 +195,7 @@ const Chat = () => {
             <Button
               onClick={createNewChat}
               variant="outline"
-              className="mx-3 mb-3 border-border/40 bg-surface/50 hover:bg-surface-hover transition-all hover:border-primary/30"
+              className="mx-3 mb-3 border-border/40 bg-white/5 hover:bg-white/10 transition-all hover:border-primary/30"
             >
               <Plus className="mr-2 h-4 w-4" /> {t("newChat")}
             </Button>
@@ -205,8 +205,8 @@ const Chat = () => {
                 <div
                   key={c.id}
                   className={`group flex items-center gap-2 rounded-lg px-3 py-2 text-sm cursor-pointer transition-all duration-200 ${activeConvoId === c.id
-                      ? "bg-primary/10 text-primary border border-primary/20"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent border border-transparent"
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "text-muted-foreground hover:bg-white/5 border border-transparent"
                     }`}
                   onClick={() => setActiveConvoId(c.id)}
                 >
@@ -238,7 +238,7 @@ const Chat = () => {
       {/* Main chat area */}
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="flex items-center gap-3 border-b border-border/20 px-4 py-3 bg-background/80 backdrop-blur-sm">
+        <header className="flex items-center gap-3 border-b border-border/20 px-4 py-3 bg-transparent backdrop-blur-sm">
           <Button
             variant="ghost"
             size="icon"
@@ -307,8 +307,8 @@ const Chat = () => {
                 )}
                 <div
                   className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all ${msg.role === "user"
-                      ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/10"
-                      : "bg-ai-bubble text-foreground border border-border/20"
+                    ? "user-bubble shadow-lg shadow-primary/20"
+                    : "ai-bubble text-foreground"
                     }`}
                 >
                   {msg.role === "assistant" ? (
@@ -331,7 +331,7 @@ const Chat = () => {
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <Bot className="h-4 w-4 text-primary" />
                 </div>
-                <div className="rounded-2xl bg-ai-bubble border border-border/20 px-4 py-3">
+                <div className="rounded-2xl ai-bubble px-4 py-3">
                   <div className="flex gap-1.5">
                     <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60" style={{ animationDelay: "0ms" }} />
                     <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60" style={{ animationDelay: "150ms" }} />
@@ -345,9 +345,9 @@ const Chat = () => {
         </div>
 
         {/* Input */}
-        <div className="border-t border-border/20 px-4 py-4 bg-background/80 backdrop-blur-sm">
+        <div className="border-t border-border/20 px-4 py-4 bg-transparent backdrop-blur-sm">
           <div className="mx-auto flex max-w-3xl items-end gap-3">
-            <div className="flex-1 rounded-2xl border border-border/30 bg-surface/50 px-4 py-3 backdrop-blur-sm focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 focus-within:shadow-lg focus-within:shadow-primary/5 transition-all duration-300">
+            <div className="flex-1 rounded-2xl border border-border/30 bg-white/5 px-4 py-3 backdrop-blur-sm focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 focus-within:shadow-lg focus-within:shadow-primary/5 transition-all duration-300">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -368,7 +368,7 @@ const Chat = () => {
               onClick={sendMessage}
               disabled={!input.trim() || isLoading}
               size="icon"
-              className="h-11 w-11 shrink-0 rounded-xl glow-blue disabled:opacity-30 transition-all hover:scale-105"
+              className="h-11 w-11 shrink-0 rounded-xl btn-primary disabled:opacity-30 transition-all hover:scale-105"
             >
               <Send className="h-4 w-4" />
             </Button>

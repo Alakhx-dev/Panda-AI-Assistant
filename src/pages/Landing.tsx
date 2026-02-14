@@ -16,7 +16,7 @@ const Landing = () => {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background transition-colors duration-300">
+    <div className="relative min-h-screen overflow-hidden bg-transparent transition-colors duration-300">
       <CursorGlow />
 
       {/* Ambient background effects */}
@@ -68,7 +68,7 @@ const Landing = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.8 }}
           >
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/50 bg-surface/50 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/50 bg-white/5 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               {t("poweredBy")}
             </div>
@@ -104,7 +104,7 @@ const Landing = () => {
               {t("startChatting")}
               <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate("/login")} className="px-8 text-base border-border/50 hover:bg-surface transition-all">
+            <Button size="lg" variant="outline" onClick={() => navigate("/login")} className="px-8 text-base border-border/50 hover:bg-white/10 transition-all">
               {t("signIn")}
             </Button>
           </motion.div>

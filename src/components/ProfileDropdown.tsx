@@ -33,7 +33,7 @@ export const ProfileDropdown = () => {
                 variant="ghost"
                 size="icon"
                 onClick={() => setOpen(!open)}
-                className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface transition-all duration-200"
+                className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all duration-200"
                 title={t("profile")}
             >
                 <User className="h-4.5 w-4.5" />
@@ -46,7 +46,7 @@ export const ProfileDropdown = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.96 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute right-0 top-12 z-50 w-64 rounded-xl border border-border/30 bg-card/90 backdrop-blur-xl shadow-2xl shadow-black/20 overflow-hidden"
+                        className="absolute right-0 top-12 z-50 w-64 rounded-xl card-glass shadow-2xl shadow-black/20 overflow-hidden"
                     >
                         <div className="border-b border-border/20 px-4 py-3">
                             <p className="text-xs text-muted-foreground">{t("loggedInAs")}</p>

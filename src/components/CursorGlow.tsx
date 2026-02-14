@@ -40,7 +40,7 @@ export const CursorGlow = () => {
           top: mousePos.y - 250,
           width: 500,
           height: 500,
-          background: `radial-gradient(circle, hsl(220 90% 56% / 0.10) 0%, hsl(260 80% 60% / 0.05) 35%, transparent 65%)`,
+          background: `radial-gradient(circle, hsl(var(--primary) / 0.10) 0%, hsl(var(--secondary) / 0.05) 35%, transparent 65%)`,
           transition: "left 0.12s cubic-bezier(0.25, 0.1, 0.25, 1), top 0.12s cubic-bezier(0.25, 0.1, 0.25, 1)",
           willChange: "left, top",
         }}

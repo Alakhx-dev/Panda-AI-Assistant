@@ -10,27 +10,19 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
-function applyTheme(id: ThemeId) {
-    const theme = themes.find((t) => t.id === id);
-    if (!theme) return;
-    const root = document.documentElement;
-    root.setAttribute("data-theme", id);
-    Object.entries(theme.vars).forEach(([key, value]) => {
-        root.style.setProperty(key, value);
-    });
-}
-
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
+    // Initialize state from localStorage or default
     const [themeId, setThemeId] = useState<ThemeId>(() => {
-        const saved = localStorage.getItem("panda-theme") as ThemeId | null;
+        const saved = localStorage.getItem("app-theme") as ThemeId | null;
         return saved && themes.some((t) => t.id === saved) ? saved : DEFAULT_THEME;
     });
 
     const theme = themes.find((t) => t.id === themeId)!;
 
     useEffect(() => {
-        applyTheme(themeId);
-        localStorage.setItem("panda-theme", themeId);
+        const root = document.documentElement;
+        root.setAttribute("data-theme", themeId);
+        localStorage.setItem("app-theme", themeId);
     }, [themeId]);
 
     const setTheme = (id: ThemeId) => setThemeId(id);
