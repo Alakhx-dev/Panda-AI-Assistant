@@ -78,8 +78,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, languag
   };
 
   return (
-    <div className="sticky bottom-0 w-full bg-[#0a0508] p-3 sm:p-4">
-      <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-4xl mx-auto">
         <div className={`p-1.5 sm:p-2 rounded-[24px] sm:rounded-3xl shadow-2xl transition-all border-2 ${config.card} ${isListening ? 'border-pink-500 ring-4 ring-pink-500/20' : config.border}`}>
 
           {attachments.length > 0 && (
@@ -199,7 +198,6 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, languag
             </div>
           </div>
         </div>
-      </div>
     </div>
   );
 };

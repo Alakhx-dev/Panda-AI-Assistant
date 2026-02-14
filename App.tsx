@@ -144,7 +144,7 @@ const App: React.FC = () => {
   const t = TRANSLATIONS[language];
 
   return (
-    <div className={`flex h-[100dvh] w-full overflow-hidden ${config.bg} ${config.gradient} bg-gradient-to-br transition-colors duration-500`}>
+    <div className={`flex min-h-[100dvh] w-full ${config.bg} ${config.gradient} bg-gradient-to-br transition-colors duration-500`}>
       <FloatingHearts />
       <div
         className="fixed pointer-events-none z-10 w-[300px] h-[300px] sm:w-[600px] sm:h-[600px] rounded-full blur-[120px] opacity-10 bg-pink-500 hidden sm:block"
@@ -185,7 +185,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-24">
           <ChatWindow
             messages={currentSession?.messages || []}
             isLoading={isLoading}
@@ -194,7 +194,7 @@ const App: React.FC = () => {
           />
         </div>
 
-        <div className="sticky bottom-0 w-full">
+        <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 lg:static">
           <ChatInput
             onSend={onSend}
             isLoading={isLoading}
