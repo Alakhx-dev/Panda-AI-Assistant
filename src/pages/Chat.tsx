@@ -334,23 +334,43 @@ const Chat = () => {
 
         {/* Messages or Empty State */}
         {isEmpty ? (
-          // Centered Empty State
-          <div className="flex-1 flex flex-col items-center justify-center px-4 pb-32">
+          // Landing-Style Centered Empty State
+          <div className="flex-1 flex flex-col items-center justify-center px-6 pb-32">
+            {/* Hero Section */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
               className="text-center mb-12"
             >
-              <div className="mb-8 inline-block">
-                <img src="/assets/panda.jpeg" className="h-20 w-20 object-contain" alt="Panda AI" />
+              {/* Powered By Badge */}
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border/50 bg-white/5 px-4 py-1.5 text-sm text-muted-foreground backdrop-blur-sm">
+                <svg className="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                {t("poweredBy")}
               </div>
-              <h2 className="text-3xl font-semibold text-foreground mb-3">Ready when you are.</h2>
-              <p className="text-base text-muted-foreground/70">Ask me anything to get started.</p>
+
+              {/* Hero Title */}
+              <h1 className="max-w-3xl text-5xl font-bold leading-tight tracking-tight md:text-7xl mb-6">
+                {t("heroTitle1")}
+                <br />
+                <span className="gradient-text glow-text">{t("heroTitle2")}</span>
+              </h1>
+
+              {/* Hero Description */}
+              <p className="max-w-xl text-lg text-muted-foreground md:text-xl">
+                {t("heroDesc")}
+              </p>
             </motion.div>
 
-            {/* Centered Floating Input */}
-            <div className="w-full max-w-3xl">
+            {/* Centered Input */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="w-full max-w-3xl"
+            >
               {/* File Preview */}
               {pendingFile && (
                 <div className="file-preview mb-2 px-4 py-2 bg-primary/10 rounded-lg flex items-center justify-between">
@@ -406,7 +426,7 @@ const Chat = () => {
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
+            </motion.div>
           </div>
         ) : (
           // Messages View with Fixed Bottom Input
@@ -527,6 +547,11 @@ const Chat = () => {
             </div>
           </>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="fixed bottom-4 right-6 text-sm text-muted-foreground opacity-70 hover:opacity-100 transition-opacity duration-300 pointer-events-none select-none">
+        Made with <span className="text-red-500">❤️</span> by <span className="text-primary font-medium">Alakh</span>
       </div>
     </div>
   );

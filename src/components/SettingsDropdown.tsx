@@ -6,7 +6,7 @@ import { useLanguage } from "@/context/LanguageContext";
 
 export const SettingsDropdown = () => {
     const [open, setOpen] = useState(false);
-    const { mode, toggleMode } = useTheme();
+    const { theme, toggleTheme } = useTheme();
     const { lang, setLang, t } = useLanguage();
 
     return (
@@ -34,19 +34,19 @@ export const SettingsDropdown = () => {
                                 variant="ghost"
                                 className="w-full justify-start text-sm"
                                 onClick={() => {
-                                    toggleMode();
+                                    toggleTheme();
                                     setOpen(false);
                                 }}
                             >
-                                {mode === "dark" ? (
-                                    <>
-                                        <Moon className="mr-2 h-4 w-4" />
-                                        Dark Mode
-                                    </>
-                                ) : (
+                                {theme === "dark" ? (
                                     <>
                                         <Sun className="mr-2 h-4 w-4" />
                                         Light Mode
+                                    </>
+                                ) : (
+                                    <>
+                                        <Moon className="mr-2 h-4 w-4" />
+                                        Dark Mode
                                     </>
                                 )}
                             </Button>
