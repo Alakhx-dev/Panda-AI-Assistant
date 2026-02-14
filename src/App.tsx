@@ -10,7 +10,6 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
-import { FloatingHearts } from "@/components/FloatingHearts";
 
 const queryClient = new QueryClient();
 
@@ -23,7 +22,6 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <FloatingHearts />
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Auth />} />

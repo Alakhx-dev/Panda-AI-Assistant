@@ -5,6 +5,10 @@
 @tailwind utilities;
 
 @layer base {
+  /* ============================================ */
+  /* PREMIUM MINIMAL THEME VARIABLES */
+  /* ============================================ */
+
   :root {
     /* Shadcn/Tailwind Base */
     --background: 230 25% 4%;
@@ -28,249 +32,258 @@
     --ring: 262 100% 59%;
     --radius: 0.75rem;
 
-    /* Theme Defaults */
-    --bg-main: #0a0a1a;
-    --bg-card: rgba(20, 20, 40, 0.6);
-    --text-main: #ffffff;
-    --blur-strength: blur(16px);
-    --border-color: rgba(255, 255, 255, 0.1);
+    /* Premium Theme Colors */
+    --bg-dark: #0f1117;
+    --bg-dark-soft: #161a22;
+    --bg-light: #f5f7fb;
+    --bg-light-soft: #ffffff;
+
+    --primary-color: #6366f1;
+    --primary-hover: #7c3aed;
+
+    --text-dark: #e5e7eb;
+    --text-light: #1f2937;
+
+    --border-dark: #232735;
+    --border-light: #e5e7eb;
   }
 
-  /* 1. Neon Orbit */
-  [data-theme="neon-orbit"] {
-    --bg-main: radial-gradient(circle at 50% -20%, #2a1b4e 0%, #0a0a1a 100%);
-    --bg-card: rgba(13, 13, 25, 0.7);
-    --primary: 270 100% 65%;
-    --secondary: 180 100% 50%;
-    --text-main: #ffffff;
-    --blur-strength: blur(20px);
-    --border-color: rgba(123, 44, 255, 0.2);
-  }
-
-  /* 2. Quantum Dark */
-  [data-theme="quantum-dark"] {
-    --bg-main: linear-gradient(135deg, #0f0f10 0%, #1a1a1a 100%);
-    --bg-card: rgba(30, 30, 30, 0.5);
-    --primary: 0 0% 100%;
-    --secondary: 0 0% 60%;
-    --text-main: #f0f0f0;
-    --blur-strength: blur(12px);
-    --border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  /* 3. Aurora Flow */
-  [data-theme="aurora-flow"] {
-    --bg-main: linear-gradient(180deg, #051015 0%, #022020 100%);
-    --bg-card: rgba(5, 25, 30, 0.6);
-    --primary: 170 100% 50%;
-    --secondary: 200 100% 60%;
-    --text-main: #e0faff;
-    --blur-strength: blur(16px);
-    --border-color: rgba(0, 255, 153, 0.15);
-  }
-
-  /* 4. Midnight Sapphire */
-  [data-theme="midnight-sapphire"] {
-    --bg-main: radial-gradient(circle at top right, #102040 0%, #020410 100%);
-    --bg-card: rgba(10, 20, 40, 0.7);
-    --primary: 220 100% 65%;
-    --secondary: 200 80% 60%;
-    --text-main: #ffffff;
-    --blur-strength: blur(24px);
-    --border-color: rgba(100, 150, 255, 0.2);
-  }
-
-  /* 5. Cyber Pulse */
-  [data-theme="cyber-pulse"] {
-    --bg-main: #000000;
-    --bg-card: rgba(10, 10, 10, 0.8);
-    --primary: 120 100% 50%;
-    --secondary: 0 0% 100%;
-    --text-main: #e0ffe0;
-    --blur-strength: blur(8px);
-    --border-color: rgba(0, 255, 0, 0.2);
-  }
-
-  /* 6. Ivory Glass */
-  [data-theme="ivory-glass"] {
-    --bg-main: #f8f9fa;
-    --bg-card: rgba(255, 255, 255, 0.6);
-    --primary: 240 5% 20%;
-    --secondary: 240 5% 50%;
-    --text-main: #111111;
-    --foreground: 240 5% 10%;
-    --muted-foreground: 240 5% 45%;
-    --blur-strength: blur(15px);
-    --border-color: rgba(0, 0, 0, 0.05);
-  }
-
-  /* 7. Emerald Luxe */
-  [data-theme="emerald-luxe"] {
-    --bg-main: linear-gradient(135deg, #05150a 0%, #020a05 100%);
-    --bg-card: rgba(10, 30, 15, 0.6);
-    --primary: 150 70% 50%;
-    --secondary: 45 80% 60%;
-    --text-main: #f0fff4;
-    --blur-strength: blur(16px);
-    --border-color: rgba(50, 200, 100, 0.2);
-  }
-
-  /* 8. Rose Romance */
-  [data-theme="rose-romance"] {
-    --bg-main: radial-gradient(circle at center, #fff0f5 0%, #fff5f8 100%);
-    --bg-card: rgba(255, 240, 245, 0.6);
-    --primary: 340 80% 60%;
-    --secondary: 340 60% 80%;
-    --text-main: #4a1a2a;
-    --foreground: 340 30% 20%;
-    --muted-foreground: 340 20% 50%;
-    --blur-strength: blur(12px);
-    --border-color: rgba(255, 105, 180, 0.15);
-  }
-
-  * {
-    @apply border-border;
-  }
+  /* ============================================ */
+  /* DARK MODE (DEFAULT) */
+  /* ============================================ */
 
   html,
-  body {
-    height: 100%;
-    width: 100%;
+  html[data-mode="dark"] {
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-dark);
+  }
+
+  html[data-mode="dark"] body {
+    background: var(--bg-dark);
+    color: var(--text-dark);
+  }
+
+  /* ============================================ */
+  /* LIGHT MODE */
+  /* ============================================ */
+
+  html[data-mode="light"] {
+    background: var(--bg-light);
+    color: var(--text-light);
+
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 262 100% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 262 100% 59%;
+  }
+
+  html[data-mode="light"] body {
+    background: var(--bg-light);
+    color: var(--text-light);
+  }
+
+  /* ============================================ */
+  /* GLOBAL STYLES */
+  /* ============================================ */
+
+  * {
     margin: 0;
     padding: 0;
-  }
-
-  html {
-    transition: background 0.4s ease;
+    box-sizing: border-box;
   }
 
   body {
-    background: var(--bg-main);
-    background-attachment: fixed;
-    background-repeat: no-repeat;
-    background-size: cover;
-    color: var(--text-main);
-    font-family: 'Space Grotesk', system-ui, sans-serif;
-    transition: background 0.4s ease, color 0.4s ease;
-    overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
-  .card,
-  .card-glass,
-  .btn-primary,
-  .sidebar,
-  button,
-  input,
-  textarea {
-    transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, transform 0.2s ease, opacity 0.2s ease;
-  }
-
-  code,
-  pre,
-  .font-mono {
-    font-family: 'JetBrains Mono', monospace;
-  }
-}
-
-@layer components {
-
-  .card,
-  .card-glass {
-    background: var(--bg-card);
-    backdrop-filter: var(--blur-strength);
-    -webkit-backdrop-filter: var(--blur-strength);
+  /* Premium card */
+  .card {
+    background: var(--bg-dark-soft);
+    border: 1px solid var(--border-dark);
     border-radius: 16px;
-    border: 1px solid var(--border-color);
+    transition: all 0.25s ease;
   }
 
-  .btn-primary {
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--secondary)));
+  html[data-mode="light"] .card {
+    background: var(--bg-light-soft);
+    border: 1px solid var(--border-light);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--bg-dark-soft);
+    border-right: 1px solid var(--border-dark);
+  }
+
+  html[data-mode="light"] .sidebar {
+    background: var(--bg-light-soft);
+    border-right: 1px solid var(--border-light);
+  }
+
+  /* Premium gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* User message bubble */
+  .user-bubble {
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
     color: white;
-    font-weight: 600;
-    border: none;
-    box-shadow: 0 0 15px hsl(var(--primary) / 0.4);
   }
 
-  [data-theme="rose-romance"] .btn-primary {
-    background: linear-gradient(90deg, #ff69b4, #ff8da1);
-    box-shadow: 0 4px 15px rgba(255, 105, 180, 0.4);
+  /* AI message bubble */
+  .ai-bubble {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  html[data-mode="light"] .ai-bubble {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  /* Premium buttons */
+  .btn-primary {
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    border-radius: 12px;
+    transition: all 0.2s ease;
   }
 
   .btn-primary:hover {
-    filter: brightness(1.1);
     transform: translateY(-1px);
-    box-shadow: 0 0 25px hsl(var(--primary) / 0.5);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
   }
 
-  .user-bubble {
-    background: hsl(var(--primary));
-    color: white;
+  /* ============================================ */
+  /* CHAT PAGE - CLEAN VERSION */
+  /* ============================================ */
+
+  .chat-page {
+    background: var(--bg-dark);
+    min-height: 100vh;
+    transition: background 0.25s ease;
   }
 
-  .ai-bubble {
-    background: var(--bg-card);
-    backdrop-filter: var(--blur-strength);
-    -webkit-backdrop-filter: var(--blur-strength);
-    border: 1px solid var(--border-color);
+  html[data-mode="light"] .chat-page {
+    background: var(--bg-light);
   }
 
-  .sidebar {
-    background: var(--bg-card);
-    backdrop-filter: var(--blur-strength);
-    -webkit-backdrop-filter: var(--blur-strength);
-    border-right: 1px solid var(--border-color);
-  }
-}
-
-@layer utilities {
-  .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--secondary)));
+  /* Clean input wrapper */
+  .chat-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-dark);
+    transition: all 0.2s ease;
   }
 
-  [data-theme="rose-romance"] .gradient-text {
-    background-image: linear-gradient(135deg, #ff69b4, #ffb7c5);
+  html[data-mode="light"] .chat-input-wrapper {
+    background: white;
+    border: 1px solid var(--border-light);
   }
 
-  .glow-blue {
-    box-shadow: 0 0 15px hsl(var(--primary) / 0.3);
+  .chat-input-wrapper:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
   }
 
-  .glow-text {
-    text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+  /* Microphone button */
+  .mic-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
   }
 
-  @keyframes gradient-shift {
-    0% {
-      background-position: 0% 50%;
-    }
-
-    50% {
-      background-position: 100% 50%;
-    }
-
-    100% {
-      background-position: 0% 50%;
-    }
+  html[data-mode="light"] .mic-btn {
+    background: rgba(0, 0, 0, 0.05);
   }
 
-  @keyframes pulse-glow {
+  .mic-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  html[data-mode="light"] .mic-btn:hover {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  .mic-btn.listening {
+    background: linear-gradient(135deg, #ec4899, #f43f5e);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
 
     0%,
     100% {
-      opacity: 0.5;
       transform: scale(1);
     }
 
     50% {
-      opacity: 0.8;
-      transform: scale(1.05);
+      transform: scale(1.1);
     }
   }
 
-  .animate-pulse-glow {
-    animation: pulse-glow 4s ease-in-out infinite;
+  /* Premium logo */
+  .app-logo {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
   }
+
+  /* File preview */
+  .file-preview {
+    animation: float-up 0.3s ease;
+  }
+
+  /* ============================================ */
+  /* UTILITY ANIMATIONS */
+  /* ============================================ */
+
+  @keyframes float-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-float {
+    animation: float-up 0.5s ease;
+  }
+
+  /* ============================================ */
+  /* SCROLLBAR */
+  /* ============================================ */
 
   ::-webkit-scrollbar {
     width: 6px;
@@ -290,74 +303,41 @@
   }
 
   /* ============================================ */
-  /* CHAT PAGE PREMIUM STYLES */
+  /* PROSE (MARKDOWN) */
   /* ============================================ */
 
-  /* ChatGPT-inspired background with radial gradients */
-  .chat-page {
-    background:
-      radial-gradient(circle at 30% 20%, rgba(139, 92, 246, 0.15), transparent 40%),
-      radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.12), transparent 40%),
-      #0b0f19;
-    min-height: 100vh;
+  .prose {
+    color: inherit;
   }
 
-  /* Floating glass input wrapper */
-  .chat-input-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: 40px;
-    backdrop-filter: blur(20px);
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-    transition: all 0.3s ease;
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    color: inherit;
+    font-weight: 600;
   }
 
-  .chat-input-wrapper:focus-within {
-    border: 1px solid rgba(139, 92, 246, 0.6);
-    box-shadow: 0 0 25px rgba(139, 92, 246, 0.3);
+  .prose code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
   }
 
-  /* Microphone button */
-  .mic-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    transition: all 0.2s ease;
-    border: none;
-    cursor: pointer;
+  html[data-mode="light"] .prose code {
+    background: rgba(0, 0, 0, 0.05);
   }
 
-  .mic-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
+  .prose pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
   }
 
-  .mic-btn.listening {
-    background: linear-gradient(135deg, #ec4899, #f43f5e);
-    box-shadow: 0 0 15px rgba(236, 72, 153, 0.6);
-    animation: pulse 1.5s infinite;
-  }
-
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-
-    50% {
-      transform: scale(1.1);
-    }
-
-    100% {
-      transform: scale(1);
-    }
-  }
-
-  /* Panda logo glow */
-  .panda-logo {
-    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.6));
+  html[data-mode="light"] .prose pre {
+    background: rgba(0, 0, 0, 0.05);
   }
 }

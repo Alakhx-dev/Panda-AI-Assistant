@@ -65,9 +65,7 @@ const Auth = () => {
         <GlobalHeader className="absolute -top-24 right-0 md:fixed md:top-6 md:right-6" authenticated={false} />
         {/* Logo */}
         <div className="mb-8 flex items-center justify-center gap-2" onClick={() => navigate("/")} role="button">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary glow-blue">
-            <Bot className="h-6 w-6 text-primary-foreground" />
-          </div>
+          <img src="/assets/panda.jpeg" alt="Panda AI Logo" className="h-10 w-10 object-contain" />
           <span className="text-2xl font-bold">
             Panda <span className="gradient-text">AI</span>
           </span>

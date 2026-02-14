@@ -37,12 +37,11 @@ const Landing = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate("/")}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary glow-blue">
-              <Bot className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-foreground">
+            <img src="/assets/panda.jpeg" alt="Panda AI Logo" className="h-8 w-8 object-contain" />
+            <span className="text-xl font-bold">
               Panda <span className="gradient-text">AI</span>
             </span>
           </motion.div>
