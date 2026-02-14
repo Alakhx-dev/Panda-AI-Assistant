@@ -28,13 +28,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fadeIn" 
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-md animate-fadeIn"
         onClick={onClose}
       />
-      
+
       {/* Modal Card */}
-      <div className={`relative w-full max-w-lg rounded-[32px] border ${config.border} ${config.card} p-6 sm:p-8 shadow-2xl animate-scaleIn`}>
+      <div className={`relative w-full max-w-lg rounded-[32px] border ${config.border} ${config.card} p-4 sm:p-6 md:p-8 shadow-2xl animate-scaleIn`}>
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl gradient-pink flex items-center justify-center text-white">
@@ -45,7 +45,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <h2 className={`text-2xl font-bold ${config.text}`}>{t.settings}</h2>
           </div>
-          <button 
+          <button
             onClick={onClose}
             className={`p-2 rounded-full hover:bg-pink-500/10 ${config.text} transition-colors`}
           >
@@ -84,11 +84,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   key={lang}
                   onClick={() => onLanguageChange(lang)}
-                  className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
-                    language === lang 
-                    ? 'border-pink-500 bg-pink-500/10 text-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.2)]' 
-                    : `${config.border} hover:bg-white/5 ${config.text} opacity-60`
-                  }`}
+                  className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${language === lang
+                      ? 'border-pink-500 bg-pink-500/10 text-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.2)]'
+                      : `${config.border} hover:bg-white/5 ${config.text} opacity-60`
+                    }`}
                 >
                   <span className="font-semibold">{lang === 'en' ? 'English' : 'हिन्दी'}</span>
                   {language === lang && (

@@ -86,7 +86,7 @@ const App: React.FC = () => {
       timestamp: Date.now()
     };
 
-    const updatedSessions = targetSessions.map(s => 
+    const updatedSessions = targetSessions.map(s =>
       s.id === sid ? { ...s, messages: [...s.messages, userMessage], updatedAt: Date.now() } : s
     );
     setSessions(updatedSessions);
@@ -103,7 +103,7 @@ const App: React.FC = () => {
         timestamp: Date.now()
       };
 
-      setSessions(prev => prev.map(s => 
+      setSessions(prev => prev.map(s =>
         s.id === sid ? { ...s, messages: [...s.messages, initialAiMessage] } : s
       ));
 
@@ -111,12 +111,12 @@ const App: React.FC = () => {
         [...activeSession.messages, userMessage],
         (chunk) => {
           aiResponseText += chunk;
-          setSessions(prev => prev.map(s => 
-            s.id === sid 
-              ? { 
-                  ...s, 
-                  messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: aiResponseText } : m) 
-                } 
+          setSessions(prev => prev.map(s =>
+            s.id === sid
+              ? {
+                ...s,
+                messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: aiResponseText } : m)
+              }
               : s
           ));
         },
@@ -144,14 +144,14 @@ const App: React.FC = () => {
   const t = TRANSLATIONS[language];
 
   return (
-    <div className={`flex h-screen overflow-hidden ${config.bg} ${config.gradient} bg-gradient-to-br transition-colors duration-500`}>
+    <div className={`flex min-h-[100dvh] overflow-hidden ${config.bg} ${config.gradient} bg-gradient-to-br transition-colors duration-500`}>
       <FloatingHearts />
-      <div 
+      <div
         className="fixed pointer-events-none z-10 w-[600px] h-[600px] rounded-full blur-[120px] opacity-10 bg-pink-500"
         style={{ left: mousePos.x - 300, top: mousePos.y - 300 }}
       ></div>
 
-      <Sidebar 
+      <Sidebar
         sessions={sessions}
         currentSessionId={currentSessionId}
         user={user}
@@ -167,8 +167,8 @@ const App: React.FC = () => {
       />
 
       <main className="flex-1 flex flex-col relative z-20">
-        <header className={`p-4 flex items-center justify-between border-b ${config.border} bg-white/5 backdrop-blur-sm lg:hidden`}>
-          <button 
+        <header className={`px-4 sm:px-6 py-4 flex items-center justify-between border-b ${config.border} bg-white/5 backdrop-blur-sm lg:hidden`}>
+          <button
             onClick={() => setIsSidebarOpen(true)}
             className={`p-2 rounded-lg ${config.text}`}
           >
@@ -177,7 +177,7 @@ const App: React.FC = () => {
             </svg>
           </button>
           <div className="font-bold text-pink-500">{t.appName}</div>
-          <div 
+          <div
             className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center cursor-pointer"
             onClick={() => setIsSettingsOpen(true)}
           >
@@ -185,26 +185,26 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <ChatWindow 
+        <ChatWindow
           messages={currentSession?.messages || []}
           isLoading={isLoading}
           theme={theme}
           language={language}
         />
 
-        <ChatInput 
+        <ChatInput
           onSend={onSend}
           isLoading={isLoading}
           theme={theme}
           language={language}
         />
 
-        <footer className={`px-4 py-2 text-[10px] uppercase tracking-widest opacity-30 text-right ${config.text}`}>
+        <footer className={`px-4 sm:px-6 py-2 text-[10px] uppercase tracking-widest opacity-30 text-right ${config.text}`}>
           Made with ❤️ by Alakh
         </footer>
       </main>
 
-      <SettingsModal 
+      <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         user={user}
