@@ -1,6 +1,0 @@
-Flask
-flask-cors
-google-generativeai>=0.4.1
-pytesseract
-Pillow
-youtube-transcript-api

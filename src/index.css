@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    --background: 230 25% 4%;
+    --foreground: 220 20% 92%;
+
+    --card: 230 22% 7%;
+    --card-foreground: 220 20% 92%;
+
+    --popover: 230 22% 7%;
+    --popover-foreground: 220 20% 92%;
+
+    --primary: 220 90% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 260 60% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 230 18% 13%;
+    --muted-foreground: 220 10% 55%;
+
+    --accent: 260 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 230 18% 16%;
+    --input: 230 18% 13%;
+    --ring: 220 90% 56%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 230 22% 5%;
+    --sidebar-foreground: 220 10% 70%;
+    --sidebar-primary: 220 90% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 230 18% 10%;
+    --sidebar-accent-foreground: 220 20% 92%;
+    --sidebar-border: 230 18% 13%;
+    --sidebar-ring: 220 90% 56%;
+
+    /* Custom tokens */
+    --glow-blue: 220 90% 56%;
+    --glow-violet: 260 80% 60%;
+    --surface: 230 22% 8%;
+    --surface-hover: 230 22% 12%;
+    --user-bubble: 220 90% 56%;
+    --ai-bubble: 230 18% 12%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  code,
+  pre,
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .glow-blue {
+    box-shadow:
+      0 0 15px hsl(var(--glow-blue) / 0.25),
+      0 0 45px hsl(var(--glow-blue) / 0.1),
+      inset 0 0 15px hsl(var(--glow-blue) / 0.05);
+  }
+
+  .glow-blue-strong {
+    box-shadow:
+      0 0 20px hsl(var(--glow-blue) / 0.4),
+      0 0 60px hsl(var(--glow-blue) / 0.15),
+      0 0 100px hsl(var(--glow-blue) / 0.05);
+  }
+
+  .glow-violet {
+    box-shadow:
+      0 0 15px hsl(var(--glow-violet) / 0.25),
+      0 0 45px hsl(var(--glow-violet) / 0.1),
+      inset 0 0 15px hsl(var(--glow-violet) / 0.05);
+  }
+
+  .glow-text {
+    text-shadow:
+      0 0 20px hsl(var(--glow-blue) / 0.5),
+      0 0 40px hsl(var(--glow-blue) / 0.25),
+      0 0 80px hsl(var(--glow-blue) / 0.1);
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)));
+    background-size: 200% 200%;
+    animation: shimmer-gradient 6s ease-in-out infinite;
+  }
+
+  .gradient-border {
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.5), hsl(var(--accent) / 0.5));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .surface-glass {
+    background: hsl(var(--surface) / 0.6);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid hsl(var(--border) / 0.4);
+  }
+
+  .card-glass {
+    background: hsl(var(--card) / 0.5);
+    backdrop-filter: blur(16px) saturate(1.1);
+    -webkit-backdrop-filter: blur(16px) saturate(1.1);
+    border: 1px solid hsl(var(--border) / 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .card-glass:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.05);
+  }
+}
+
+/* Keyframes */
+@keyframes shimmer-gradient {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted) / 0.8);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* Selection */
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}
