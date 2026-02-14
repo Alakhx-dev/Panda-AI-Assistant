@@ -5,9 +5,12 @@ import ReactMarkdown from "react-markdown";
 import { Bot, Send, Plus, LogOut, MessageSquare, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/context/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { streamChat, type Msg } from "@/lib/chatStream";
 import { toast } from "sonner";
+import { SettingsDropdown } from "@/components/SettingsDropdown";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 
 interface Conversation {
   id: string;
@@ -18,6 +21,7 @@ interface Conversation {
 const Chat = () => {
   const navigate = useNavigate();
   const { user, signOut, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -163,14 +167,14 @@ const Chat = () => {
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="text-sm text-muted-foreground animate-pulse">Loading...</span>
+          <span className="text-sm text-muted-foreground animate-pulse">{t("loading")}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background transition-colors duration-300">
       {/* Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -193,7 +197,7 @@ const Chat = () => {
               variant="outline"
               className="mx-3 mb-3 border-border/40 bg-surface/50 hover:bg-surface-hover transition-all hover:border-primary/30"
             >
-              <Plus className="mr-2 h-4 w-4" /> New Chat
+              <Plus className="mr-2 h-4 w-4" /> {t("newChat")}
             </Button>
 
             <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
@@ -224,7 +228,7 @@ const Chat = () => {
                 onClick={async () => { await signOut(); navigate("/"); }}
                 className="w-full justify-start text-muted-foreground hover:text-foreground transition-colors"
               >
-                <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                <LogOut className="mr-2 h-4 w-4" /> {t("signOut")}
               </Button>
             </div>
           </motion.aside>
@@ -243,11 +247,16 @@ const Chat = () => {
           >
             <MessageSquare className="h-5 w-5" />
           </Button>
-          <h2 className="text-sm font-medium text-muted-foreground">
+          <h2 className="flex-1 text-sm font-medium text-muted-foreground truncate">
             {activeConvoId
               ? conversations.find(c => c.id === activeConvoId)?.title || "Chat"
-              : "Start a new conversation"}
+              : t("startNewConvo")}
           </h2>
+          {/* Profile + Settings buttons */}
+          <div className="flex items-center gap-1">
+            <SettingsDropdown />
+            <ProfileDropdown />
+          </div>
         </header>
 
         {/* Messages */}
@@ -270,7 +279,7 @@ const Chat = () => {
                   transition={{ delay: 0.2, duration: 0.4 }}
                   className="text-xl font-semibold text-foreground"
                 >
-                  How can I help you today?
+                  {t("helpToday")}
                 </motion.h3>
                 <motion.p
                   initial={{ opacity: 0, y: 10 }}
@@ -278,7 +287,7 @@ const Chat = () => {
                   transition={{ delay: 0.3, duration: 0.4 }}
                   className="mt-2 text-sm text-muted-foreground"
                 >
-                  Ask me anything — I'm here to help you learn.
+                  {t("askAnything")}
                 </motion.p>
               </div>
             )}
@@ -344,7 +353,7 @@ const Chat = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your message..."
+                placeholder={t("typeMessage")}
                 rows={1}
                 className="w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
                 style={{ maxHeight: "120px" }}

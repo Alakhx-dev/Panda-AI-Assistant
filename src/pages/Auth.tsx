@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/context/LanguageContext";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -13,6 +14,7 @@ const Auth = () => {
   const location = useLocation();
   const isSignUp = location.pathname === "/signup";
   const { signUp, signIn } = useAuth();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -46,7 +48,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 transition-colors duration-300">
       {/* Ambient glow */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 h-[600px] w-[600px] rounded-full bg-primary/5 blur-[120px]" />
@@ -72,15 +74,15 @@ const Auth = () => {
         {/* Form card */}
         <div className="rounded-2xl border border-border/30 bg-card/50 p-8 backdrop-blur-xl shadow-2xl shadow-primary/5">
           <h2 className="mb-1 text-center text-2xl font-bold text-foreground">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isSignUp ? t("createAccount") : t("welcomeBack")}
           </h2>
           <p className="mb-6 text-center text-sm text-muted-foreground">
-            {isSignUp ? "Start learning with Panda AI" : "Sign in to continue"}
+            {isSignUp ? t("startLearning") : t("signInContinue")}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email</Label>
+              <Label htmlFor="email" className="text-foreground">{t("email")}</Label>
               <Input
                 id="email"
                 type="email"
@@ -92,7 +94,7 @@ const Auth = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Password</Label>
+              <Label htmlFor="password" className="text-foreground">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
@@ -105,17 +107,17 @@ const Auth = () => {
 
             <Button type="submit" className="w-full glow-blue transition-all hover:scale-[1.01]" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? "Create Account" : "Sign In"}
+              {isSignUp ? t("createAccountBtn") : t("signInBtn")}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            {isSignUp ? t("alreadyHaveAccount") : t("dontHaveAccount")}{" "}
             <button
               onClick={() => navigate(isSignUp ? "/login" : "/signup")}
               className="font-medium text-primary hover:underline transition-colors"
             >
-              {isSignUp ? "Sign in" : "Sign up"}
+              {isSignUp ? t("signIn") : t("signUp")}
             </button>
           </div>
         </div>
