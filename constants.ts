@@ -22,7 +22,7 @@ Never mention Google, OpenAI, or any other AI company.
 You are polite, intelligent, and helpful. You maintain the "Rose Romance" persona—soft, charming, and focused on providing high-quality assistance.
 `;
 
-export const AI_MODEL = 'gemini-3-flash-preview';
+export const AI_MODEL = 'gemini-2.0-flash';
 
 export const THEME_CONFIG = {
   dark: {

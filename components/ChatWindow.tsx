@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Message, ThemeMode, Language } from '../types';
 import { THEME_CONFIG, TRANSLATIONS } from '../constants';
 
@@ -8,10 +8,30 @@ interface ChatWindowProps {
   isLoading: boolean;
   theme: ThemeMode;
   language: Language;
+  onSuggestClick?: (suggestion: string) => void;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, theme, language }) => {
+const SUGGESTION_POOL = [
+  "Write a romantic poem about starlit nights",
+  "Explain quantum physics in simple terms",
+  "How do I improve my productivity at work?",
+  "Share an interesting historical fact",
+  "What are the benefits of meditation?",
+  "Tell me about your favorite movie genre",
+  "How can I learn a new language quickly?",
+  "Explain artificial intelligence in layman's terms",
+  "What's the best way to stay healthy?",
+  "Create a travel itinerary for Europe",
+  "Teach me advanced cooking techniques",
+  "Discuss the impact of technology on society",
+  "How do I start a successful business?",
+  "Write a motivational speech",
+  "Explain climate change and its solutions"
+];
+
+const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, theme, language, onSuggestClick }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const config = THEME_CONFIG[theme];
   const t = TRANSLATIONS[language];
 
@@ -24,6 +44,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, theme, lan
     }
   }, [messages, isLoading]);
 
+  useEffect(() => {
+    const randomSuggestions = SUGGESTION_POOL
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 4);
+    setSuggestions(randomSuggestions);
+  }, []);
+
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-4 sm:p-8 space-y-4 sm:space-y-6 h-full">
@@ -35,9 +62,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ messages, isLoading, theme, lan
           <p className={`text-sm sm:text-lg opacity-60 ${config.text}`}>{t.emptyStateSub}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full max-w-2xl px-2">
-          {[t.suggestion1, t.suggestion2, t.suggestion3, t.suggestion4].map((suggestion) => (
+          {suggestions.map((suggestion) => (
             <div
               key={suggestion}
+              onClick={() => onSuggestClick?.(suggestion)}
               className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border ${config.border} ${config.card} cursor-pointer hover:border-pink-500/50 transition-all ${config.text} group`}
             >
               <div className="font-medium text-sm sm:text-base group-hover:text-pink-500 transition-colors">{suggestion}</div>

@@ -9,6 +9,7 @@ import Auth from './components/Auth';
 import FloatingHearts from './components/FloatingHearts';
 import SettingsModal from './components/SettingsModal';
 import { chatWithGemini } from './services/geminiService';
+import { checkEnvironment } from './services/envCheck';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -20,6 +21,17 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  // ===== CHECK ENVIRONMENT ON APP STARTUP =====
+  useEffect(() => {
+    console.log("🚀 App.tsx: Performing environment check at startup");
+    const envOk = checkEnvironment();
+    if (envOk) {
+      console.log("✅ Environment check PASSED - API key is available");
+    } else {
+      console.warn("⚠️ Environment check FAILED - API key not found. Check browser console for details.");
+    }
+  }, []);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('panda_user');
@@ -107,25 +119,132 @@ const App: React.FC = () => {
         s.id === sid ? { ...s, messages: [...s.messages, initialAiMessage] } : s
       ));
 
-      await chatWithGemini(
+      const apiResponse = await chatWithGemini(
         [...activeSession.messages, userMessage],
         (chunk) => {
-          aiResponseText += chunk;
-          setSessions(prev => prev.map(s =>
-            s.id === sid
-              ? {
-                ...s,
-                messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: aiResponseText } : m)
-              }
-              : s
-          ));
+          if (chunk && chunk.trim()) {  // Only update if chunk has content
+            aiResponseText += chunk;
+            setSessions(prev => prev.map(s =>
+              s.id === sid
+                ? {
+                  ...s,
+                  messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: aiResponseText } : m)
+                }
+                : s
+            ));
+          }
         },
         language,
         attachments
       );
+
+      console.log("📬 Final API response returned:", apiResponse);
+
+      // STRICT: Validate response is not empty before finalizing
+      if (!apiResponse || apiResponse.trim() === '') {
+        console.error("❌ STRICT VALIDATION FAILED: API returned empty/undefined response");
+        console.error("Response was:", apiResponse);
+        const fallbackMessage = language === 'hi'
+          ? 'माफी करें, मुझे जवाब बनाने में समस्या हुई। कृपया फिर से प्रयास करें।'
+          : 'Sorry, I couldn\'t generate a response. Please try again.';
+
+        setSessions(prev => prev.map(s =>
+          s.id === sid
+            ? {
+              ...s,
+              messages: s.messages.map(m =>
+                m.id === aiMessageId ? { ...m, content: fallbackMessage } : m
+              )
+            }
+            : s
+        ));
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("✅ RESPONSE VALIDATION PASSED");
+      console.log("✅ Final content being set, length:", apiResponse.length);
+      // Ensure final content is properly set (in case streaming ended)
+      setSessions(prev => prev.map(s =>
+        s.id === sid
+          ? {
+            ...s,
+            messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: apiResponse } : m)
+          }
+          : s
+      ));
     } catch (error) {
-      console.error(error);
+      console.error("❌ Error in onSend - FULL ERROR DUMP:");
+      console.error("Error object:", error);
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+
+      // Extract specific error message
+      let userErrorMessage = language === 'hi'
+        ? 'API में त्रुटि: कृपया फिर से प्रयास करें।'
+        : 'API Error: Please try again.';
+
+      if (error instanceof Error) {
+        const message = error.message;
+        
+        // Provide specific error messages based on error type
+        if (message.includes('401')) {
+          userErrorMessage = language === 'hi'
+            ? 'API कुंजी अमान्य है। .env.local में VITE_GEMINI_API_KEY जांचें।'
+            : 'Invalid API key. Check VITE_GEMINI_API_KEY in .env.local';
+        } else if (message.includes('403')) {
+          userErrorMessage = language === 'hi'
+            ? 'API पहुंच अस्वीकृत। Google Cloud Console में जांचें।'
+            : 'API access denied. Check Google Cloud Console.';
+        } else if (message.includes('429')) {
+          userErrorMessage = language === 'hi'
+            ? 'बहुत अधिक अनुरोध। एक पल प्रतीक्षा करें।'
+            : 'Too many requests. Please wait a moment.';
+        } else if (message.includes('400')) {
+          userErrorMessage = language === 'hi'
+            ? 'अमान्य अनुरोध प्रारूप।'
+            : 'Invalid request format.';
+        } else if (message.includes('500')) {
+          userErrorMessage = language === 'hi'
+            ? 'Google सर्वर त्रुटि। बाद में पुनः प्रयास करें।'
+            : 'Google server error. Try again later.';
+        } else if (message.includes('not found') || message.includes('API Key')) {
+          userErrorMessage = language === 'hi'
+            ? 'API कुंजी नहीं मिली। डेवलपर सर्वर पुनः प्रारंभ करें।'
+            : 'API key not found. Restart the dev server.';
+        } else if (message.includes('empty response')) {
+          userErrorMessage = language === 'hi'
+            ? 'API ने खाली जवाब दिया। कृपया फिर से प्रयास करें।'
+            : 'API returned empty response. Please try again.';
+        }
+      }
+
+      console.log("🎯 Displaying error to user:", userErrorMessage);
+
+      // Show error message to user
+      setSessions(prev => {
+        const session = prev.find(s => s.id === sid);
+        if (session) {
+          const lastMsg = session.messages[session.messages.length - 1];
+          if (lastMsg && lastMsg.role === 'assistant' && lastMsg.content === '') {
+            return prev.map(s =>
+              s.id === sid
+                ? {
+                  ...s,
+                  messages: s.messages.map(m =>
+                    m.id === lastMsg.id ? { ...m, content: userErrorMessage } : m
+                  )
+                }
+                : s
+            );
+          }
+        }
+        return prev;
+      });
     } finally {
+      console.log("🏁 Request complete, setting isLoading to false");
       setIsLoading(false);
     }
   };
@@ -191,6 +310,7 @@ const App: React.FC = () => {
             isLoading={isLoading}
             theme={theme}
             language={language}
+            onSuggestClick={(suggestion) => onSend(suggestion, [])}
           />
         </div>
 
