@@ -188,16 +188,16 @@ const App: React.FC = () => {
 
       if (error instanceof Error) {
         const message = error.message;
-        
+
         // Provide specific error messages based on error type
         if (message.includes('401')) {
           userErrorMessage = language === 'hi'
-            ? 'API कुंजी अमान्य है। .env.local में VITE_GEMINI_API_KEY जांचें।'
-            : 'Invalid API key. Check VITE_GEMINI_API_KEY in .env.local';
+            ? 'API कुंजी अमान्य है। .env.local में VITE_OPENROUTER_API_KEY जांचें।'
+            : 'Invalid API key. Check VITE_OPENROUTER_API_KEY in .env.local';
         } else if (message.includes('403')) {
           userErrorMessage = language === 'hi'
-            ? 'API पहुंच अस्वीकृत। Google Cloud Console में जांचें।'
-            : 'API access denied. Check Google Cloud Console.';
+            ? 'API पहुंच अस्वीकृत। OpenRouter खाता जांचें।'
+            : 'API access denied. Check your OpenRouter account.';
         } else if (message.includes('429')) {
           userErrorMessage = language === 'hi'
             ? 'बहुत अधिक अनुरोध। एक पल प्रतीक्षा करें।'
@@ -208,8 +208,8 @@ const App: React.FC = () => {
             : 'Invalid request format.';
         } else if (message.includes('500')) {
           userErrorMessage = language === 'hi'
-            ? 'Google सर्वर त्रुटि। बाद में पुनः प्रयास करें।'
-            : 'Google server error. Try again later.';
+            ? 'OpenRouter सर्वर त्रुटि। बाद में पुनः प्रयास करें।'
+            : 'OpenRouter server error. Try again later.';
         } else if (message.includes('not found') || message.includes('API Key')) {
           userErrorMessage = language === 'hi'
             ? 'API कुंजी नहीं मिली। डेवलपर सर्वर पुनः प्रारंभ करें।'
