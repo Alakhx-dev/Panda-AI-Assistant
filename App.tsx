@@ -314,7 +314,7 @@ const App: React.FC = () => {
           />
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950/95 via-slate-950/90 to-transparent backdrop-blur-md p-3 sm:p-4 lg:static lg:bg-none lg:backdrop-blur-none">
+        <div className="fixed bottom-[50px] left-0 right-0 bg-gradient-to-t from-slate-950/95 via-slate-950/90 to-transparent backdrop-blur-md p-3 sm:p-4 lg:static lg:bottom-auto lg:bg-none lg:backdrop-blur-none">
           <ChatInput
             onSend={onSend}
             isLoading={isLoading}
@@ -323,7 +323,7 @@ const App: React.FC = () => {
           />
         </div>
 
-        <footer className={`px-4 sm:px-6 py-2 text-[10px] uppercase tracking-widest opacity-30 text-right ${config.text}`}>
+        <footer className={`fixed bottom-[10px] left-0 right-0 z-10 px-4 sm:px-6 py-2 text-[10px] uppercase tracking-widest opacity-30 text-right lg:static lg:bottom-auto lg:z-auto ${config.text}`}>
           Made with ❤️ by Alakh
         </footer>
       </div>
