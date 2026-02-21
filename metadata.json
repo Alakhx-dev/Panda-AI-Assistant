@@ -1,8 +1,0 @@
-
-{
-  "name": "Panda AI - Rose Romance",
-  "description": "A high-performance AI assistant with a premium romantic theme, featuring streaming chat, voice recognition, and file analysis.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
