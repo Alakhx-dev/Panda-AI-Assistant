@@ -285,26 +285,8 @@ const App: React.FC = () => {
         setIsOpen={setIsSidebarOpen}
       />
 
-      <div className="flex flex-col flex-1 min-h-0">
-        <header className={`px-4 sm:px-6 py-4 flex items-center justify-between border-b ${config.border} bg-white/5 backdrop-blur-sm lg:hidden`}>
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className={`p-2 rounded-lg ${config.text} min-h-[44px] min-w-[44px] flex items-center justify-center`}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-          <div className="font-bold text-pink-500">{t.appName}</div>
-          <div
-            className="w-10 h-10 rounded-xl bg-pink-500/10 flex items-center justify-center cursor-pointer"
-            onClick={() => setIsSettingsOpen(true)}
-          >
-            🐼
-          </div>
-        </header>
-
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pb-[150px]">
+      <div className="flex flex-col flex-1 min-h-0 relative">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 sm:px-6 pb-[150px] pt-16 lg:pt-8">
           <ChatWindow
             messages={currentSession?.messages || []}
             isLoading={isLoading}
