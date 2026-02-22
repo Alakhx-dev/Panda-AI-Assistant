@@ -145,6 +145,7 @@ Panda AI is designed for effortless deployment on **Vercel**:
 
 ## 👨‍💻 About the Developer
 
+**Alakh Niranjan**
 **Alakh **
 *Full-Stack Engineer & AI Enthusiast*
 
