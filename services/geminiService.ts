@@ -45,17 +45,51 @@ export const chatWithGemini = async (
   const systemPrompt = getSystemPrompt(language);
 
   // Convert history to OpenAI-style messages array
-  const messages: { role: string; content: string }[] = [
+  // Note: `content` may be a string for text-only messages or an array for multimodal (text + image)
+  const messages: { role: string; content: string | any[] }[] = [
     { role: "system", content: systemPrompt }
   ];
 
   // Only send the last 4 messages for performance
   const recentHistory = history.slice(-4);
+
+  // Detect if an image attachment was provided alongside the user input
+  const imageAttachment = attachments?.find(a => a.type?.startsWith('image/')) || null;
+
+  // If an image is present, ensure it's below 4MB
+  if (imageAttachment) {
+    const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB
+    if (imageAttachment.size > MAX_IMAGE_BYTES) {
+      throw new Error('❌ Image too large: Please upload images smaller than 4MB.');
+    }
+  }
+
+  // Build messages. If the last user message corresponds to the provided attachments,
+  // convert that message into the multimodal content format expected by the model.
   for (const msg of recentHistory) {
-    messages.push({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content
-    });
+    // If this is the user message and there is an image attachment, send multimodal content
+    if (msg.role === 'user' && imageAttachment && attachments.length > 0) {
+      // Extract base64 payload from data URL if necessary
+      let imageDataUrl = imageAttachment.data;
+      if (typeof imageDataUrl === 'string' && imageDataUrl.startsWith('data:')) {
+        // Keep as-is (data:<mime>;base64,<payload>)
+      } else if (typeof imageDataUrl === 'string') {
+        // If stored as raw base64, prefix with mime
+        const mime = imageAttachment.type || 'image/jpeg';
+        imageDataUrl = `data:${mime};base64,${imageDataUrl}`;
+      }
+
+      const textPart = (msg.content && msg.content.trim())
+        ? { type: 'text', text: msg.content }
+        : { type: 'text', text: 'What is in this image?' };
+
+      const imagePart = { type: 'image_url', image_url: { url: imageDataUrl } };
+
+      messages.push({ role: 'user', content: [textPart, imagePart] });
+    } else {
+      // Regular text-only message
+      messages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
+    }
   }
 
   const requestBody = {
