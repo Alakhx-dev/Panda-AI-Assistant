@@ -1,157 +1,235 @@
-# 🐼 Panda AI — Premium Full-Stack AI Companion
+# 🐼 Panda AI  
+## A Modern AI Assistant Built for Intelligent Learning & Productivity
 
-> A state-of-the-art, recruiter-ready AI assistant web application featuring a multi-model architecture, persistent memory, and a high-performance UI.
+Panda AI is a modern, scalable AI web application designed to deliver intelligent, structured, and high-performance conversational experiences.
 
----
+Built using a production-ready frontend architecture with React, TypeScript, and secure proxy-based AI integration, Panda AI demonstrates real-world AI product development capabilities — including modular design, responsive UI engineering, and secure API communication.
 
-## 🌟 Project Overview
-
-**Panda AI** is a professional-grade full-stack AI web application designed to deliver a seamless, high-performance chat experience. Built with a focus on modular architecture and scalability, it leverages modern technologies like React 19, Supabase, and OpenRouter to provide users with a reliable and intelligent digital companion.
-
-Unlike standard tutorial projects, Panda AI is engineered for production, featuring secure authentication, persistent state management across sessions, and a "Rose Romance" design system that prioritizes aesthetic excellence and user engagement.
-
-## 🚀 Live Highlights & Key Features
-
-- **Multi-Model Intelligence**: Dynamically switch between top-tier models including GPT-4o, Claude 3.5 Sonnet, and Gemini 1.5 Flash via OpenRouter.
-- **Persistent Memory**: Full chat history persistence powered by Supabase, ensuring your conversations are always available.
-- **Secure Authentication**: Robust user management using Supabase Auth, supporting both email/password and social login providers.
-- **Micro-Animation Engine**: Engaging UI with floating particles and smooth transitions for a premium, "living" interface feel.
-- **Responsive "Liquid" Design**: Fully optimized for mobile, tablet, and desktop with a focus on accessibility and performance.
-- **Bilingual Core**: Native support for English and Hindi (bilingual system prompts and UI).
+This project reflects strong understanding of frontend engineering, API architecture, AI integration, and performance-focused web development.
 
 ---
 
-## 🏗️ System Architecture
+# 🌟 Live Highlights
 
-Panda AI follows a clean "Data-Fluid" architecture, ensuring low latency and high reliability between the client and AI layers.
+- ⚡ Real-time AI Chat Interface  
+- 🧠 Advanced AI Model Integration (Gemini / Claude / GPT-4o via OpenRouter)  
+- 🔐 Secure Proxy-Based API Architecture  
+- 💾 Local Chat Session Persistence (LocalStorage)  
+- 🎨 Premium UI with Dark/Light Theme  
+- 📱 Fully Responsive (Mobile + Desktop Optimized)  
+- ☁️ Production Deployment Ready  
 
-```mermaid
-graph TD
-    A[User Client] <--> B[Vite + React 19 Frontend]
-    B <--> C[Supabase Auth & Database]
-    B <--> D[Supabase Edge Functions]
-    D <--> E[OpenRouter Gateway]
-    E <--> F[GPT-4o / Claude / Gemini]
-    B -- "Real-time UI Updates" --> A
+---
+
+# 🧠 System Overview
+
+Panda AI follows a modern proxy-based architecture:
+
+```
+User → React Frontend → Secure Proxy Layer → AI Model API → Response → Rendered in Chat UI
 ```
 
-### Detailed Architecture Breakdown
-
-#### 🎨 Frontend Responsibilities
-- **State Management**: React hooks for local state and session persistence.
-- **UI/UX**: Tailwind CSS for high-performance styling and custom micro-animations.
-- **Service Layer**: Decoupled API service for AI interactions with built-in exponential backoff for rate limiting.
-
-#### ⚙️ Backend Responsibilities (Supabase)
-- **Edge Functions**: Secure proxying of AI requests to protect API keys and handle business logic.
-- **Database**: PostgreSQL schema designed for high-concurrency chat sessions and user profiles.
-- **Real-time Engine**: Sycing state across multiple devices and browser sessions.
-
-#### 🧠 AI Integration Layer
-- **OpenRouter Abstraction**: A unified interface to interact with multiple LLMs without refactoring frontend code.
-- **System Orchestration**: Language-aware system prompts that maintain persona consistency.
+Chat sessions are stored locally in the browser for session continuity.  
+The architecture is modular and designed for future backend or cloud expansion.
 
 ---
 
-## 🛠️ Technology Stack
+# 🏗️ Architecture Breakdown
 
-### 💻 Frontend
-- **Framework**: React 19 (Latest)
-- **Tooling**: Vite (Fast HMR)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS & CSS Modules
+## 1️⃣ Frontend Layer
 
-### ⚙️ Backend & Infrastructure
-- **Serverless**: Supabase Edge Functions
-- **Database**: PostgreSQL (via Supabase)
-- **Auth**: Supabase Auth (JWT based)
-- **Hosting**: Vercel
+### Built With:
+- React + Vite  
+- TypeScript  
+- Tailwind CSS  
 
-### 🧠 Intelligence Layer
-- **OpenRouter Integration**: Access to GPT-4o, Claude 3.5, and Gemini 1.5 Pro/Flash.
+### Architecture Principles:
+- Component-based structure  
+- Context-aware chat interface  
+- Dynamic theme engine (Dark / Light)  
+- Modular folder organization  
+
+### Key Responsibilities:
+- Real-time message rendering  
+- Sidebar session handling  
+- Theme switching  
+- Mobile responsiveness  
+- API request handling  
+- Client-side state management  
+- LocalStorage-based persistence  
 
 ---
 
-## 📁 Folder Structure
+## 2️⃣ Secure Proxy Layer
 
-```text
-Panda-AI/
-├── components/          # Reusable UI components (Auth, Sidebar, Chat)
-├── services/            # API integration and environment validation logic
-├── types/               # Global TypeScript definitions
-├── constants/           # Multi-language translations and theme configs
-├── supabase/            # Edge functions and migration scripts
-├── public/              # Static assets and icons
-├── App.tsx              # Root application container & routing
-└── README.md            # Comprehensive project documentation
+A server-side proxy is used to securely forward AI API requests without exposing API keys to the client.
+
+### Key Responsibilities:
+- Secure API key handling  
+- AI request forwarding  
+- Response validation  
+- Error handling  
+
+This ensures production-level security and protects sensitive credentials.
+
+---
+
+## 3️⃣ AI Integration Layer
+
+### Supported Models:
+- Gemini Models  
+- Claude Models  
+- GPT-4o via OpenRouter  
+
+### Designed for Extension:
+- Multi-model switching  
+- Temperature control  
+- System prompt injection  
+- Context retention (session-based)  
+
+The system is structured to allow easy integration of additional AI providers.
+
+---
+
+# 🚀 Core Features
+
+## 🤖 Intelligent AI Chat
+Structured and optimized responses for technical, academic, and productivity tasks.
+
+## 💾 Local Session Persistence
+Chat sessions are stored locally in the browser using LocalStorage.
+
+## 🎨 Premium UI/UX
+- Clean layout  
+- Glass-style components  
+- Smooth scrolling  
+- Responsive design  
+- Dark/Light theme toggle  
+
+## 📱 Mobile Optimization
+- No footer overlap  
+- Collapsible sidebar  
+- Proper input bar positioning  
+- Optimized layout performance  
+
+## ⚡ Optimized Performance
+- Efficient API handling  
+- Lightweight frontend build  
+- Clean component structure  
+- Production-ready configuration  
+
+---
+
+# 🛠️ Technology Stack
+
+## Frontend
+- React  
+- Vite  
+- TypeScript  
+- Tailwind CSS  
+
+## AI Layer
+- Gemini API  
+- Claude API  
+- OpenRouter (GPT-4o)  
+
+## Deployment
+- Vercel  
+- Netlify  
+
+---
+
+# 📂 Project Structure
+
+```
+root/
+│
+├── src/                  # Frontend source code
+├── public/               # Static assets
+├── api/                  # Proxy logic (if applicable)
+├── components/           # Reusable UI components
+├── hooks/                # Custom React hooks
+├── utils/                # Helper utilities
+├── package.json          # Dependencies
+└── README.md
 ```
 
 ---
 
-## 💻 Local Development Setup
+# ⚙️ Local Development Setup
 
-Follow these steps to get a local instance of Panda AI running on your machine:
+## Step 1: Clone Repository
 
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/panda-ai.git
-cd panda-ai
+git clone https://github.com/Alakhx-dev/AI-Study-Assistant
+cd AI-Study-Assistant
 ```
 
-### 2. Install Dependencies
+## Step 2: Install Dependencies
+
 ```bash
 npm install
 ```
 
-### 3. Environment Configuration
-Create a `.env.local` file in the root directory and add the following:
+## Step 3: Configure Environment Variables
+
+Create a `.env` file in the root directory:
 
 ```env
-# AI Service Key (OpenRouter)
-VITE_OPENROUTER_API_KEY=your_openrouter_key_here
-
-# Supabase Configuration
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_AI_API_KEY=your_ai_api_key
 ```
 
-### 4. Start Development Server
+If using OpenRouter:
+
+```env
+VITE_OPENROUTER_API_KEY=your_openrouter_key
+```
+
+## Step 4: Run Development Server
+
 ```bash
 npm run dev
 ```
 
 ---
 
-## 🌐 Production Deployment (Vercel)
+# 🌐 Deployment (Production)
 
-Panda AI is designed for effortless deployment on **Vercel**:
+Panda AI can be deployed on:
 
-1. Connect your GitHub repository to Vercel.
-2. In the Vercel dashboard, go to **Settings > Environment Variables**.
-3. Import the variables from your `.env.local`.
-4. Run `npm run build` to verify the production bundle.
-5. Deploy!
+- Vercel  
+- Netlify  
 
----
+### Deployment Steps:
 
-## 🗺️ Future Roadmap
-
-- [ ] **Voice Integration**: Hands-free AI interactions with Whisper & TTS.
-- [ ] **Artifacts System**: Code sandboxes and document previews within chat.
-- [ ] **Collaborative Sessions**: Share chat links with other users in real-time.
-- [ ] **Model Marketplace**: Allow users to select their preferred AI provider.
+1. Push code to GitHub  
+2. Connect repository to hosting platform  
+3. Configure environment variables  
+4. Enable automatic deployments  
 
 ---
 
-## 👨‍💻 About the Developer
+# 🔮 Future Enhancements
 
-**Alakh Niranjan**
-*Full-Stack Engineer & AI Enthusiast*
-
-Dedicated to building intelligent products that bridge the gap between complex AI systems and intuitive user experiences.
+- 🎤 Voice-based AI interaction  
+- 📂 File upload + AI analysis  
+- ☁️ Cloud-based persistent storage  
+- 🔐 Authentication system  
+- 🌍 Multi-language support  
+- 🧠 Long-term memory system  
 
 ---
 
-## 📄 License
+# 👨‍💻 About the Developer
 
-This project is licensed under the **MIT License**. Feel free to use it as a foundation for your own AI applications.
+**Alakh Niranjan**  
+B.Tech Student | Full-Stack Developer | AI Enthusiast  
+
+Focused on building scalable AI-driven systems using modern web technologies.  
+Strong interest in AI architecture, frontend engineering, and intelligent product design.
+
+---
+
+# 📜 License
+
+This project is developed for learning, portfolio demonstration, and AI system experimentation.
