@@ -1,6 +1,43 @@
 
 import { getSystemPrompt, AI_MODEL } from "../constants";
 import { Message, FileAttachment, Language } from "../types";
+import * as pdfjs from 'pdfjs-dist';
+
+// Helper: decode a data URL (base64) into a Uint8Array
+const decodeBase64DataUrl = (dataUrl: string): Uint8Array => {
+  const base64 = dataUrl.split(',')[1] || '';
+  const raw = atob(base64);
+  const uint8 = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) {
+    uint8[i] = raw.charCodeAt(i);
+  }
+  return uint8;
+};
+
+// Extract text from a PDF data URL using PDF.js (loaded dynamically)
+const extractPdfText = async (pdfDataUrl: string): Promise<string> => {
+  try {
+    // Ensure the worker is loaded from a stable CDN. Version pinned to match a compatible pdfjs-dist release.
+    (pdfjs as any).GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const uint8 = decodeBase64DataUrl(pdfDataUrl);
+    const loadingTask = (pdfjs as any).getDocument({ data: uint8 });
+    const pdf = await loadingTask.promise;
+
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page: any = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map((it: any) => (it.str || '')).join(' ');
+      fullText += (i > 1 ? '\n\n' : '') + pageText;
+    }
+
+    return fullText.trim();
+  } catch (err) {
+    console.error('PDF text extraction failed:', err);
+    return '';
+  }
+};
 
 // ===== MOCK MODE: Set VITE_MOCK_MODE=true in .env.local to skip real API calls =====
 const MOCK_MODE = import.meta.env.VITE_MOCK_MODE === 'true';
@@ -45,7 +82,7 @@ export const chatWithGemini = async (
   const systemPrompt = getSystemPrompt(language);
 
   // Convert history to OpenAI-style messages array
-  // Note: `content` may be a string for text-only messages or an array for multimodal (text + image)
+  // Note: `content` may be a string for text-only messages or an array for multimodal (text + image/pdf-extracted-text)
   const messages: { role: string; content: string | any[] }[] = [
     { role: "system", content: systemPrompt }
   ];
@@ -53,39 +90,70 @@ export const chatWithGemini = async (
   // Only send the last 4 messages for performance
   const recentHistory = history.slice(-4);
 
-  // Detect if an image attachment was provided alongside the user input
-  const imageAttachment = attachments?.find(a => a.type?.startsWith('image/')) || null;
-
-  // If an image is present, ensure it's below 4MB
-  if (imageAttachment) {
-    const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB
-    if (imageAttachment.size > MAX_IMAGE_BYTES) {
-      throw new Error('❌ Image too large: Please upload images smaller than 4MB.');
-    }
-  }
-
-  // Build messages. If the last user message corresponds to the provided attachments,
-  // convert that message into the multimodal content format expected by the model.
+  // Build messages. If attachments were provided with the last user message,
+  // convert that message into a multimodal content array expected by the model.
   for (const msg of recentHistory) {
-    // If this is the user message and there is an image attachment, send multimodal content
-    if (msg.role === 'user' && imageAttachment && attachments.length > 0) {
-      // Extract base64 payload from data URL if necessary
-      let imageDataUrl = imageAttachment.data;
-      if (typeof imageDataUrl === 'string' && imageDataUrl.startsWith('data:')) {
-        // Keep as-is (data:<mime>;base64,<payload>)
-      } else if (typeof imageDataUrl === 'string') {
-        // If stored as raw base64, prefix with mime
-        const mime = imageAttachment.type || 'image/jpeg';
-        imageDataUrl = `data:${mime};base64,${imageDataUrl}`;
+    if (msg.role === 'user' && attachments && attachments.length > 0) {
+      const parts: any[] = [];
+
+      // Always include the textual user input as a text part (or fallback prompt)
+      const textPart = (msg.content && String(msg.content).trim())
+        ? { type: 'text', text: String(msg.content) }
+        : { type: 'text', text: 'Please analyze the attached file(s) and summarize the contents.' };
+
+      parts.push(textPart);
+
+      // For each attachment, create the appropriate part
+      for (const att of attachments) {
+        if (!att.type || att.type.startsWith('image/')) {
+          // Image: keep data URL as image_url
+          let imageDataUrl = att.data as string;
+          if (typeof imageDataUrl === 'string' && !imageDataUrl.startsWith('data:')) {
+            const mime = att.type || 'image/jpeg';
+            imageDataUrl = `data:${mime};base64,${imageDataUrl}`;
+          }
+
+          // Image size guard: 4MB
+          const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
+          if (att.size && att.size > MAX_IMAGE_BYTES) {
+            throw new Error('❌ Image too large: Please upload images smaller than 4MB.');
+          }
+
+          parts.push({ type: 'image_url', image_url: { url: imageDataUrl } });
+        } else if (att.type === 'application/pdf') {
+          // PDF: extract text client-side and send as a text part
+          const pdfDataUrl = att.data as string;
+          onChunk('[PDF] Extracting text from uploaded PDF...');
+          const extracted = await extractPdfText(pdfDataUrl);
+          if (extracted && extracted.trim().length > 0) {
+            parts.push({ type: 'text', text: `Extracted PDF Content (${att.name || 'document'}):\n${extracted}` });
+          } else {
+            parts.push({ type: 'text', text: `Uploaded PDF (${att.name || 'document'}) could not be parsed. Please ensure the file is not corrupted.` });
+          }
+        } else if (att.type.startsWith('text/')) {
+          // Plain text file: decode from data URL and include as text
+          let dataStr = '';
+          const d = att.data as string;
+          if (typeof d === 'string') {
+            if (d.startsWith('data:')) {
+              const base64 = d.split(',')[1] || '';
+              try {
+                dataStr = atob(base64);
+              } catch (err) {
+                dataStr = base64;
+              }
+            } else {
+              dataStr = d;
+            }
+          }
+          parts.push({ type: 'text', text: `Uploaded file (${att.name || 'file'}):\n${dataStr}` });
+        } else {
+          // Fallback: include file name and mime type as a hint to the model
+          parts.push({ type: 'text', text: `Uploaded file: ${att.name || 'unknown'} (MIME: ${att.type}).` });
+        }
       }
 
-      const textPart = (msg.content && msg.content.trim())
-        ? { type: 'text', text: msg.content }
-        : { type: 'text', text: 'What is in this image?' };
-
-      const imagePart = { type: 'image_url', image_url: { url: imageDataUrl } };
-
-      messages.push({ role: 'user', content: [textPart, imagePart] });
+      messages.push({ role: 'user', content: parts });
     } else {
       // Regular text-only message
       messages.push({ role: msg.role === 'user' ? 'user' : 'assistant', content: msg.content });
