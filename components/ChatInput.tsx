@@ -1,16 +1,18 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ThemeMode, FileAttachment, Language } from '../types';
-import { THEME_CONFIG, TRANSLATIONS } from '../constants';
+import { THEME_CONFIG, TRANSLATIONS, MODEL_OPTIONS } from '../constants';
 
 interface ChatInputProps {
   onSend: (text: string, files: FileAttachment[]) => void;
   isLoading: boolean;
   theme: ThemeMode;
   language: Language;
+  selectedModel: string;
+  onModelChange: (modelId: string) => void;
 }
 
-const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, language }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, language, selectedModel, onModelChange }) => {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
@@ -20,6 +22,8 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, languag
   const recognitionRef = useRef<any>(null);
   const config = THEME_CONFIG[theme];
   const t = TRANSLATIONS[language];
+  const isDark = theme === ThemeMode.DARK;
+  const isPremiumSelected = MODEL_OPTIONS.find(m => m.id === selectedModel)?.isPremium ?? false;
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -113,6 +117,31 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, languag
         )}
 
         <div className="flex items-center gap-1 sm:gap-2 p-1">
+          {/* Model selector dropdown — compact pill inside the input bar */}
+          <select
+            value={selectedModel}
+            onChange={(e) => onModelChange(e.target.value)}
+            className={`
+              text-[10px] sm:text-xs px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl border cursor-pointer
+              outline-none transition-all duration-200 shrink-0
+              max-w-[100px] sm:max-w-[170px]
+              appearance-none bg-no-repeat bg-[length:12px] bg-[right_6px_center]
+              ${isDark
+                ? 'bg-pink-950/40 border-pink-900/30 text-pink-100 hover:border-pink-700/50'
+                : 'bg-pink-50 border-pink-200 text-pink-900 hover:border-pink-400'
+              }
+            `}
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='${isDark ? '%23f9a8d4' : '%23831843'}'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E")`
+            }}
+          >
+            {MODEL_OPTIONS.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.label}
+              </option>
+            ))}
+          </select>
+
           <div className="flex items-center gap-0.5 sm:gap-1">
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -202,6 +231,13 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, theme, languag
           </div>
         </div>
       </div>
+
+      {/* Premium model warning — shown below the input container */}
+      {isPremiumSelected && (
+        <div className={`mt-1.5 px-3 text-[10px] sm:text-xs ${isDark ? 'text-amber-400/80' : 'text-amber-600'}`}>
+          ⚠ Premium model selected. May consume OpenRouter credits.
+        </div>
+      )}
     </div>
   );
 };

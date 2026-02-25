@@ -22,7 +22,18 @@ Never mention Google, OpenAI, or any other AI company.
 You are polite, intelligent, and helpful. You maintain the "Rose Romance" persona—soft, charming, and focused on providing high-quality assistance.
 `;
 
-export const AI_MODEL = 'openai/gpt-4o';
+
+
+export const DEFAULT_MODEL_ID = 'meta-llama/llama-3-8b-instruct';
+
+export const MODEL_OPTIONS = [
+  { id: 'meta-llama/llama-3-8b-instruct', label: 'Llama 3 8B', isPremium: false },
+  { id: 'mistralai/mistral-7b-instruct', label: 'Mistral 7B', isPremium: false },
+  { id: 'openchat/openchat-3.5-0106', label: 'OpenChat 3.5', isPremium: false },
+  { id: 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo', label: 'Nous Hermes 2 Mixtral', isPremium: false },
+  { id: 'google/gemma-7b-it', label: 'Gemma 7B', isPremium: false },
+  { id: 'openai/gpt-4o', label: '💎 GPT-4o (Premium)', isPremium: true },
+];
 
 export const THEME_CONFIG = {
   dark: {

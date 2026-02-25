@@ -1,5 +1,5 @@
 
-import { getSystemPrompt, AI_MODEL } from "../constants";
+import { getSystemPrompt, DEFAULT_MODEL_ID } from "../constants";
 import { Message, FileAttachment, Language } from "../types";
 import * as pdfjs from 'pdfjs-dist';
 
@@ -49,7 +49,8 @@ export const chatWithGemini = async (
   history: Message[],
   onChunk: (text: string) => void,
   language: Language,
-  attachments: FileAttachment[] = []
+  attachments: FileAttachment[] = [],
+  model: string = DEFAULT_MODEL_ID
 ): Promise<string> => {
   // ===== MOCK MODE: Return hardcoded response for UI testing =====
   if (MOCK_MODE) {
@@ -76,7 +77,7 @@ export const chatWithGemini = async (
 
   console.log("✅ OpenRouter API Key loaded successfully");
   console.log("✅ Key prefix:", apiKey.substring(0, 12) + "...");
-  console.log("✅ Model:", AI_MODEL);
+  console.log("✅ Model:", model);
 
   // ===== BUILD OPENROUTER MESSAGES =====
   const systemPrompt = getSystemPrompt(language);
@@ -161,7 +162,7 @@ export const chatWithGemini = async (
   }
 
   const requestBody = {
-    model: AI_MODEL,
+    model: model,
     messages: messages,
     temperature: 0.7,
     max_tokens: 1024,
@@ -169,17 +170,18 @@ export const chatWithGemini = async (
 
   console.group("📡 OPENROUTER API REQUEST");
   console.log("🔗 Endpoint: https://openrouter.ai/api/v1/chat/completions");
-  console.log("📌 Model:", AI_MODEL);
+  console.log("📌 Model:", model);
   console.log("📦 Messages count:", messages.length);
   console.groupEnd();
 
-  try {
-    // ===== RETRY LOOP WITH EXPONENTIAL BACKOFF FOR 429 =====
+  // ===== HELPER: Execute a single API call with retry logic for 429 =====
+  const executeApiCall = async (useModel: string): Promise<string> => {
+    const body = { ...requestBody, model: useModel };
     let attempt = 0;
     let response: Response | null = null;
 
     while (attempt <= MAX_RETRIES) {
-      console.log(`🚀 Sending fetch request... (attempt ${attempt + 1}/${MAX_RETRIES + 1})`);
+      console.log(`🚀 Sending fetch request with model "${useModel}"... (attempt ${attempt + 1}/${MAX_RETRIES + 1})`);
 
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -189,7 +191,7 @@ export const chatWithGemini = async (
           "X-Title": "Panda AI by Alakh",
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(body),
       });
 
       // If rate limited (429) and we have retries left, wait and retry
@@ -221,6 +223,7 @@ export const chatWithGemini = async (
     console.group("📊 OPENROUTER API RESPONSE");
     console.log("STATUS:", response.status);
     console.log("STATUS TEXT:", response.statusText);
+    console.log("MODEL USED:", useModel);
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -235,22 +238,10 @@ export const chatWithGemini = async (
         errorMessage = errorBody;
       }
 
-      switch (response.status) {
-        case 401:
-          throw new Error(`❌ 401 UNAUTHORIZED: Invalid OpenRouter API key. Check VITE_OPENROUTER_API_KEY in .env.local. Error: ${errorMessage}`);
-        case 403:
-          throw new Error(`❌ 403 FORBIDDEN: API access denied. Error: ${errorMessage}`);
-        case 429:
-          throw new Error(`❌ 429 RATE LIMITED: Too many requests. All ${MAX_RETRIES} retries exhausted. Error: ${errorMessage}`);
-        case 400:
-          throw new Error(`❌ 400 BAD REQUEST: Invalid request format. Error: ${errorMessage}`);
-        case 404:
-          throw new Error(`❌ 404 NOT FOUND: Model not found. Current model: ${AI_MODEL}. Error: ${errorMessage}`);
-        case 500:
-          throw new Error(`❌ 500 SERVER ERROR: OpenRouter server error. Try again later. Error: ${errorMessage}`);
-        default:
-          throw new Error(`❌ HTTP ${response.status} ${response.statusText}: ${errorMessage}`);
-      }
+      // Attach status to error for fallback detection
+      const err = new Error(`❌ HTTP ${response.status}: ${errorMessage}`);
+      (err as any).status = response.status;
+      throw err;
     }
 
     // Parse successful response (OpenAI-style)
@@ -276,8 +267,30 @@ export const chatWithGemini = async (
     console.log("✅ TEXT LENGTH:", fullText.length);
     console.log("✅ TEXT PREVIEW:", fullText.substring(0, 100) + (fullText.length > 100 ? '...' : ''));
 
-    onChunk(fullText);
     return fullText;
+  };
+
+  // ===== MAIN CALL WITH AUTOMATIC FALLBACK =====
+  try {
+    let resultText: string;
+
+    try {
+      resultText = await executeApiCall(model);
+    } catch (primaryError: any) {
+      const status = primaryError?.status;
+      const isModelError = status === 400 || status === 404 || status === 422;
+
+      // If the selected model failed with a model-related error and it's not already the default, fallback
+      if (isModelError && model !== DEFAULT_MODEL_ID) {
+        console.warn(`⚠️ Model "${model}" failed (HTTP ${status}). Falling back to default: "${DEFAULT_MODEL_ID}"`);
+        resultText = await executeApiCall(DEFAULT_MODEL_ID);
+      } else {
+        throw primaryError;
+      }
+    }
+
+    onChunk(resultText);
+    return resultText;
   } catch (error) {
     console.group("❌ OPENROUTER API ERROR");
     console.error("ERROR OBJECT:", error);

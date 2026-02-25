@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, ChatSession, ThemeMode, Message, FileAttachment, Language } from './types';
-import { THEME_CONFIG, TRANSLATIONS } from './constants';
+import { THEME_CONFIG, TRANSLATIONS, DEFAULT_MODEL_ID } from './constants';
 import Sidebar from './components/Sidebar';
 import ChatWindow from './components/ChatWindow';
 import ChatInput from './components/ChatInput';
+
 import Auth from './components/Auth';
 import FloatingHearts from './components/FloatingHearts';
 import SettingsModal from './components/SettingsModal';
@@ -20,6 +21,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL_ID);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   // ===== CHECK ENVIRONMENT ON APP STARTUP =====
@@ -135,7 +137,8 @@ const App: React.FC = () => {
           }
         },
         language,
-        attachments
+        attachments,
+        selectedModel
       );
 
       console.log("📬 Final API response returned:", apiResponse);
@@ -302,6 +305,8 @@ const App: React.FC = () => {
             isLoading={isLoading}
             theme={theme}
             language={language}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
           />
         </div>
 
