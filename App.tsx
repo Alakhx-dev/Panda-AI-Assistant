@@ -106,34 +106,42 @@ const App: React.FC = () => {
     setSessions(updatedSessions);
     setIsLoading(true);
 
+    const aiMessageId = (Date.now() + 1).toString();
+    let messageInserted = false;
+
     try {
       const activeSession = updatedSessions.find(s => s.id === sid)!;
       let aiResponseText = '';
-      const aiMessageId = (Date.now() + 1).toString();
-      const initialAiMessage: Message = {
-        id: aiMessageId,
-        role: 'assistant',
-        content: '',
-        timestamp: Date.now()
-      };
-
-      setSessions(prev => prev.map(s =>
-        s.id === sid ? { ...s, messages: [...s.messages, initialAiMessage] } : s
-      ));
 
       const apiResponse = await chatWithGemini(
         [...activeSession.messages, userMessage],
         (chunk) => {
           if (chunk && chunk.trim()) {  // Only update if chunk has content
             aiResponseText += chunk;
-            setSessions(prev => prev.map(s =>
-              s.id === sid
-                ? {
-                  ...s,
-                  messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: aiResponseText } : m)
-                }
-                : s
-            ));
+            if (!messageInserted) {
+              // First chunk: create and insert the assistant message
+              messageInserted = true;
+              setIsLoading(false);
+              const newAiMessage: Message = {
+                id: aiMessageId,
+                role: 'assistant',
+                content: aiResponseText,
+                timestamp: Date.now()
+              };
+              setSessions(prev => prev.map(s =>
+                s.id === sid ? { ...s, messages: [...s.messages, newAiMessage] } : s
+              ));
+            } else {
+              // Subsequent chunks: update existing message
+              setSessions(prev => prev.map(s =>
+                s.id === sid
+                  ? {
+                    ...s,
+                    messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: aiResponseText } : m)
+                  }
+                  : s
+              ));
+            }
           }
         },
         language,
@@ -151,31 +159,58 @@ const App: React.FC = () => {
           ? 'माफी करें, मुझे जवाब बनाने में समस्या हुई। कृपया फिर से प्रयास करें।'
           : 'Sorry, I couldn\'t generate a response. Please try again.';
 
-        setSessions(prev => prev.map(s =>
-          s.id === sid
-            ? {
-              ...s,
-              messages: s.messages.map(m =>
-                m.id === aiMessageId ? { ...m, content: fallbackMessage } : m
-              )
-            }
-            : s
-        ));
+        if (!messageInserted) {
+          // No streaming happened — insert a new fallback message
+          const fallbackMsg: Message = {
+            id: aiMessageId,
+            role: 'assistant',
+            content: fallbackMessage,
+            timestamp: Date.now()
+          };
+          setSessions(prev => prev.map(s =>
+            s.id === sid ? { ...s, messages: [...s.messages, fallbackMsg] } : s
+          ));
+        } else {
+          setSessions(prev => prev.map(s =>
+            s.id === sid
+              ? {
+                ...s,
+                messages: s.messages.map(m =>
+                  m.id === aiMessageId ? { ...m, content: fallbackMessage } : m
+                )
+              }
+              : s
+          ));
+        }
         setIsLoading(false);
         return;
       }
 
       console.log("✅ RESPONSE VALIDATION PASSED");
       console.log("✅ Final content being set, length:", apiResponse.length);
-      // Ensure final content is properly set (in case streaming ended)
-      setSessions(prev => prev.map(s =>
-        s.id === sid
-          ? {
-            ...s,
-            messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: apiResponse } : m)
-          }
-          : s
-      ));
+      // Ensure final content is properly set
+      if (!messageInserted) {
+        // Non-streaming response — insert the assistant message now
+        const finalAiMessage: Message = {
+          id: aiMessageId,
+          role: 'assistant',
+          content: apiResponse,
+          timestamp: Date.now()
+        };
+        setSessions(prev => prev.map(s =>
+          s.id === sid ? { ...s, messages: [...s.messages, finalAiMessage] } : s
+        ));
+      } else {
+        // Streaming happened — update with final content
+        setSessions(prev => prev.map(s =>
+          s.id === sid
+            ? {
+              ...s,
+              messages: s.messages.map(m => m.id === aiMessageId ? { ...m, content: apiResponse } : m)
+            }
+            : s
+        ));
+      }
     } catch (error) {
       console.error("❌ Error in onSend - FULL ERROR DUMP:");
       console.error("Error object:", error);
@@ -227,25 +262,30 @@ const App: React.FC = () => {
       console.log("🎯 Displaying error to user:", userErrorMessage);
 
       // Show error message to user
-      setSessions(prev => {
-        const session = prev.find(s => s.id === sid);
-        if (session) {
-          const lastMsg = session.messages[session.messages.length - 1];
-          if (lastMsg && lastMsg.role === 'assistant' && lastMsg.content === '') {
-            return prev.map(s =>
-              s.id === sid
-                ? {
-                  ...s,
-                  messages: s.messages.map(m =>
-                    m.id === lastMsg.id ? { ...m, content: userErrorMessage } : m
-                  )
-                }
-                : s
-            );
-          }
-        }
-        return prev;
-      });
+      if (!messageInserted) {
+        // No assistant message was ever added — insert error as new message
+        const errorMsg: Message = {
+          id: aiMessageId,
+          role: 'assistant',
+          content: userErrorMessage,
+          timestamp: Date.now()
+        };
+        setSessions(prev => prev.map(s =>
+          s.id === sid ? { ...s, messages: [...s.messages, errorMsg] } : s
+        ));
+      } else {
+        // Update existing assistant message with error
+        setSessions(prev => prev.map(s =>
+          s.id === sid
+            ? {
+              ...s,
+              messages: s.messages.map(m =>
+                m.id === aiMessageId ? { ...m, content: userErrorMessage } : m
+              )
+            }
+            : s
+        ));
+      }
     } finally {
       console.log("🏁 Request complete, setting isLoading to false");
       setIsLoading(false);
