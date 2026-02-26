@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -10,34 +9,138 @@ interface AuthProps {
 
 const Auth: React.FC<AuthProps> = ({ onLogin, language }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const t = TRANSLATIONS[language];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Helper function to get users from localStorage
+  const getUsers = (): User[] => {
+    const users = localStorage.getItem('users');
+    return users ? JSON.parse(users) : [];
+  };
+
+  // Helper function to save users to localStorage
+  const saveUsers = (users: User[]) => {
+    localStorage.setItem('users', JSON.stringify(users));
+  };
+
+  // Handle signup
+  const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    setSuccess('');
+
     setTimeout(() => {
-      onLogin({
-        email,
-        name: email.split('@')[0],
-      });
+      const users = getUsers();
+      
+      // Check if email already exists
+      const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existingUser) {
+        setError(t.accountExists);
+        setLoading(false);
+        return;
+      }
+
+      // Create new user
+      const newUser: User = {
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password: password
+      };
+
+      // Add to users array
+      users.push(newUser);
+      saveUsers(users);
+
+      // Save current session
+      const sessionUser = { ...newUser };
+      delete (sessionUser as any).password;
+      localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+
+      setSuccess(t.signupSuccess);
       setLoading(false);
+      
+      // Call onLogin with the new user
+      onLogin(sessionUser);
+    }, 1000);
+  };
+
+  // Handle login
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    setTimeout(() => {
+      const users = getUsers();
+      
+      // Find matching email and password
+      const foundUser = users.find(
+        u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      );
+
+      if (foundUser) {
+        // Create session user (without password)
+        const sessionUser = { ...foundUser };
+        delete (sessionUser as any).password;
+        
+        // Save current session
+        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+        
+        setLoading(false);
+        onLogin(sessionUser);
+      } else {
+        setError(t.invalidCredentials);
+        setLoading(false);
+      }
+    }, 1000);
+  };
+
+  // Handle Google login (simulated)
+  const handleGoogleLogin = () => {
+    setGoogleLoading(true);
+    setError('');
+    setSuccess('');
+
+    setTimeout(() => {
+      // Simulate Google OAuth - in real app, this would be Google OAuth
+      // For demo, we'll use a prompt to get user info
+      const googleEmail = prompt('Enter your Google email:');
+      if (!googleEmail) {
+        setGoogleLoading(false);
+        return;
+      }
+      
+      const googleName = prompt('Enter your name:') || googleEmail.split('@')[0];
+
+      const googleUser: User = {
+        name: googleName,
+        email: googleEmail.toLowerCase(),
+        provider: 'google',
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${googleName}`
+      };
+
+      // Save current session
+      localStorage.setItem('currentUser', JSON.stringify(googleUser));
+
+      setGoogleLoading(false);
+      onLogin(googleUser);
     }, 1500);
   };
 
-  const handleGoogleLogin = () => {
-    setGoogleLoading(true);
-    setTimeout(() => {
-      onLogin({
-        email: 'alakh.niranjan@gmail.com',
-        name: 'Alakh Niranjan',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alakh'
-      });
-      setGoogleLoading(false);
-    }, 2000);
+  const handleSubmit = (e: React.FormEvent) => {
+    if (isLogin) {
+      handleLogin(e);
+    } else {
+      handleSignup(e);
+    }
   };
 
   return (
@@ -55,7 +158,36 @@ const Auth: React.FC<AuthProps> = ({ onLogin, language }) => {
             <p className="text-pink-300/60 mt-2">{t.loginSub}</p>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-4 p-3 rounded-xl bg-green-500/20 border border-green-500/30 text-green-300 text-sm text-center">
+              {success}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name field - only show on signup */}
+            {!isLogin && (
+              <div>
+                <label className="block text-sm font-medium text-pink-200/80 mb-2 ml-1">{t.name}</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="John Doe"
+                  className="w-full bg-white/5 border border-pink-500/10 rounded-2xl p-4 text-white placeholder-pink-200/20 focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500 transition-all"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-pink-200/80 mb-2 ml-1">{t.email}</label>
               <input
@@ -123,7 +255,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, language }) => {
 
           <div className="mt-8 text-center">
             <button
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError('');
+                setSuccess('');
+                setName('');
+              }}
               className="text-pink-400 hover:text-pink-300 text-sm font-medium transition-colors"
             >
               {isLogin ? t.toggleAuth : t.toggleAuthLogin}

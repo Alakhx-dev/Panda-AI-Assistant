@@ -36,7 +36,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('panda_user');
+    // Load current user from localStorage (key: currentUser)
+    const savedUser = localStorage.getItem('currentUser');
     const savedSessions = localStorage.getItem('panda_sessions');
     const savedLang = localStorage.getItem('panda_lang');
     if (savedUser) setUser(JSON.parse(savedUser));
@@ -45,7 +46,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user) localStorage.setItem('panda_user', JSON.stringify(user));
+    // Save user to currentUser key
+    if (user) localStorage.setItem('currentUser', JSON.stringify(user));
     localStorage.setItem('panda_sessions', JSON.stringify(sessions));
     localStorage.setItem('panda_lang', language);
   }, [user, sessions, language]);
@@ -59,7 +61,7 @@ const App: React.FC = () => {
   const handleLogin = (userData: User) => setUser(userData);
   const handleLogout = () => {
     setUser(null);
-    localStorage.removeItem('panda_user');
+    localStorage.removeItem('currentUser');
   };
 
   const createNewSession = () => {

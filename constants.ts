@@ -74,6 +74,7 @@ export const TRANSLATIONS = {
     loginSub: "Your premium AI companion",
     email: "Email Address",
     password: "Password",
+    name: "Full Name",
     signIn: "Sign In",
     createAccount: "Create Account",
     or: "OR",
@@ -81,7 +82,10 @@ export const TRANSLATIONS = {
     toggleAuth: "New here? Join Panda AI",
     toggleAuthLogin: "Already have an account? Sign in",
     save: "Save Changes",
-    close: "Close"
+    close: "Close",
+    invalidCredentials: "Invalid email or password",
+    accountExists: "An account with this email already exists",
+    signupSuccess: "Account created successfully!"
   },
   hi: {
     appName: "पांडा एआई",
@@ -104,6 +108,7 @@ export const TRANSLATIONS = {
     loginSub: "आपका प्रीमियम एआई साथी",
     email: "ईमेल पता",
     password: "पासवर्ड",
+    name: "पूरा नाम",
     signIn: "साइन इन करें",
     createAccount: "खाता बनाएं",
     or: "या",
@@ -111,6 +116,9 @@ export const TRANSLATIONS = {
     toggleAuth: "यहाँ नए हैं? पांडा एआई से जुड़ें",
     toggleAuthLogin: "पहले से ही एक खाता है? साइन इन करें",
     save: "परिवर्तन सहेजें",
-    close: "बंद करें"
+    close: "बंद करें",
+    invalidCredentials: "अमान्य ईमेल या पासवर्ड",
+    accountExists: "इस ईमेल से पहले से एक खाता मौजूद है",
+    signupSuccess: "खाता सफलतापूर्वक बनाया गया!"
   }
 };
